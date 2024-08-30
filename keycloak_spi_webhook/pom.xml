@@ -54,7 +54,7 @@
  </dependencies>
 
 	<build>
-		<finalName>legacydemo</finalName>
+		<finalName>webhook-spi</finalName>
 		<plugins>
 
 			<!-- Set a JDK compiler level -->

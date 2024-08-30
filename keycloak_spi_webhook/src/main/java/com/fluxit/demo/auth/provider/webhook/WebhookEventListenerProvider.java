@@ -11,12 +11,14 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.jboss.logging.Logger;
 import org.apache.hc.core5.http.ContentType;
 
 import java.io.IOException;
 
 public class WebhookEventListenerProvider implements EventListenerProvider {
 
+    private static final Logger log = Logger.getLogger(WebhookEventListenerProvider.class);
     private final KeycloakSession session;
     private final String webhookUrl;
 
@@ -28,18 +30,36 @@ public class WebhookEventListenerProvider implements EventListenerProvider {
     @Override
     public void onEvent(Event event) {
         if (event.getType() == EventType.REGISTER) {
+            log.info("User registered: " + event.getUserId());
             sendWebhook("REGISTER", event.getUserId());
         }
 
         if (event.getType() == EventType.DELETE_ACCOUNT) {
+            log.info("User deleted: " + event.getUserId());
             sendWebhook("DELETE_ACCOUNT", event.getUserId());
+        }
+
+        if (event.getType() == EventType.LOGIN) {
+            log.info("User deleted: " + event.getUserId());
+            sendWebhook("LOGIN", event.getUserId());
+        }
+
+        if (event.getType() == EventType.LOGOUT) {
+            log.info("User deleted: " + event.getUserId());
+            sendWebhook("LOGOUT", event.getUserId());
         }
     }
 
     @Override
     public void onEvent(AdminEvent adminEvent, boolean includeRepresentation) {
         if (adminEvent.getOperationType() == OperationType.DELETE && adminEvent.getResourceTypeAsString().equals("USER")) {
+            log.info("User deleted by admin: " + adminEvent.getResourcePath());
             sendWebhook("DELETE", adminEvent.getResourcePath().replaceAll("users/", ""));
+        }
+
+        if (adminEvent.getOperationType() == OperationType.CREATE && adminEvent.getResourceTypeAsString().equals("USER")) {
+            log.info("User deleted by admin: " + adminEvent.getResourcePath());
+            sendWebhook("CREATE", adminEvent.getResourcePath().replaceAll("users/", ""));
         }
     }
     
@@ -52,6 +72,7 @@ public class WebhookEventListenerProvider implements EventListenerProvider {
                 "{\"action\":\"%s\",\"userId\":\"%s\"}",
                 action, userId
             );
+            log.debug(json);
 
             StringEntity entity = new StringEntity(json, ContentType.APPLICATION_JSON);
             request.setEntity(entity);

@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Client } from "@hubspot/api-client";
+import * as hubspot from '@hubspot/api-client'
 import axios from 'axios';
+import { FilterOperatorEnum, SimplePublicObjectInputForCreate } from '@hubspot/api-client/lib/codegen/crm/contacts';
 
 @Injectable()
 export class KeycloakHubspotService {
   private readonly logger = new Logger(KeycloakHubspotService.name);
-  private hubspotClient: any;
-
+  private hubspotClient: hubspot.Client;
   constructor() {
-    this.hubspotClient = new Client({
+    this.hubspotClient = new hubspot.Client({
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
     });
   }
@@ -49,10 +49,26 @@ export class KeycloakHubspotService {
 
   async deleteUserFromHubSpot(email: string): Promise<void> {
     try {
-      const contact = await this.hubspotClient.crm.contacts.basicApi.getByEmail(email);
-
-      if (contact.body.id) {
-        await this.hubspotClient.crm.contacts.basicApi.archive(contact.body.id);
+      const response = await this.hubspotClient.crm.contacts.searchApi.doSearch({
+        filterGroups: [
+          {
+            filters: [
+              {
+                propertyName: 'email',
+                operator: FilterOperatorEnum.Eq,
+                value: email,
+              },
+            ],
+          },
+        ],
+        properties: ['email'],
+        limit: 1,
+        after: "20",
+        sorts: ["-createdate"],
+      });
+      const contact = response.results[0];
+      if (contact.id) {
+        await this.hubspotClient.crm.contacts.basicApi.archive(contact.id);
         this.logger.log(`Deleted user from HubSpot: ${email}`);
       } else {
         this.logger.log(`No user found in HubSpot with email: ${email}`);
@@ -65,18 +81,36 @@ export class KeycloakHubspotService {
 
   async syncUserToHubSpot(user: any): Promise<void> {
     try {
-      const contactObj = {
+      const contactObj: SimplePublicObjectInputForCreate = {
         properties: {
           email: user.email,
           firstname: user.firstName,
           lastname: user.lastName,
         },
+        associations: [],
       };
 
-      const existingContact = await this.hubspotClient.crm.contacts.basicApi.getByEmail(user.email);
+      const response = await this.hubspotClient.crm.contacts.searchApi.doSearch({
+        filterGroups: [
+          {
+            filters: [
+              {
+                propertyName: 'email',
+                operator: FilterOperatorEnum.Eq,
+                value: user.email,
+              },
+            ],
+          },
+        ],
+        properties: ['email'],
+        limit: 1,
+        after: "20",
+        sorts: ["-createdate"],
+      });
+      const existingContact = response.results[0];
 
-      if (existingContact.body.id) {
-        await this.hubspotClient.crm.contacts.basicApi.update(existingContact.body.id, contactObj);
+      if (existingContact.id) {
+        await this.hubspotClient.crm.contacts.basicApi.update(existingContact.id, contactObj);
         this.logger.log(`Updated contact in HubSpot: ${user.email}`);
       } else {
         await this.hubspotClient.crm.contacts.basicApi.create(contactObj);

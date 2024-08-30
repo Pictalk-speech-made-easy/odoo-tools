@@ -23,14 +23,17 @@ export class KeycloakHubspotController {
     const { action, userId } = body;
 
     if (action === 'DELETE') {
+      this.logger.log(`Deleting user with ID: ${userId}`);
       await this.keycloakHubspotService.handleUserDeletion(userId);
     }
 
     if (action === 'DELETE_ACCOUNT') {
+        this.logger.log(`Deleting account with ID: ${userId}`);
         await this.keycloakHubspotService.handleUserDeletion(userId);
       }
 
     if (action === 'REGISTER') {
+        this.logger.log(`Creating user with ID: ${userId}`);
         await this.keycloakHubspotService.handleUserCreation(userId);
     }
     return { message: 'Webhook processed successfully.' };
