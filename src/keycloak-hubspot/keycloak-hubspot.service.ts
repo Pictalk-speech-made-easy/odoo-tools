@@ -87,7 +87,7 @@ export class KeycloakHubspotService {
           email: user.email,
           firstname: user.firstName,
           lastname: user.lastName,
-          lastlogin: new Date().toISOString(),
+          //lastlogin: new Date().toISOString(),
         },
         associations: [],
       };
