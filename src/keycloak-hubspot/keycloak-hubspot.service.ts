@@ -111,7 +111,7 @@ export class KeycloakHubspotService {
       });
       const existingContact = response.results[0];
 
-      if (existingContact.id) {
+      if (existingContact && existingContact.id) {
         await this.hubspotClient.crm.contacts.basicApi.update(existingContact.id, contactObj);
         this.logger.log(`Updated contact in HubSpot: ${user.email}`);
       } else {
