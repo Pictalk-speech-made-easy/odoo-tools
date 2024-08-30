@@ -8,14 +8,18 @@ import { User } from './User.type';
 export class KeycloakHubspotService {
   private readonly logger = new Logger(KeycloakHubspotService.name);
   private hubspotClient: hubspot.Client;
+  private keycloakToken: string | null = null;
+  private tokenExpiration: number | null = null;
+
   constructor() {
     this.hubspotClient = new hubspot.Client({
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
     });
   }
-
-  async getKeycloakToken(): Promise<string> {
+  
+  private async fetchKeycloakToken(): Promise<string> {
     try {
+      console.log('fetching keycloak token');
       const response = await axios.post(
         `${process.env.KEYCLOAK_BASE_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/token`,
         new URLSearchParams({
@@ -24,11 +28,20 @@ export class KeycloakHubspotService {
           client_secret: process.env.KEYCLOAK_CLIENT_SECRET,
         }),
       );
-      return response.data.access_token;
+      this.keycloakToken = response.data.access_token;
+      this.tokenExpiration = Date.now() + response.data.expires_in * 1000;
+      return this.keycloakToken;
     } catch (error) {
       this.logger.error('Error fetching Keycloak token', error.message);
       throw error;
     }
+  }
+
+  async getKeycloakToken(): Promise<string> {
+    if (this.keycloakToken && this.tokenExpiration && Date.now() < this.tokenExpiration) {
+      return this.keycloakToken;
+    }
+    return this.fetchKeycloakToken();
   }
 
   async getKeycloakUsers(token: string): Promise<any[]> {
@@ -106,7 +119,7 @@ export class KeycloakHubspotService {
         ],
         properties: ['email'],
         limit: 1,
-        after: "20",
+        after: "0",
         sorts: ["-createdate"],
       });
       const existingContact = response.results[0];
