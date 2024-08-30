@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as hubspot from '@hubspot/api-client'
 import axios from 'axios';
-import { FilterOperatorEnum, SimplePublicObjectInputForCreate } from '@hubspot/api-client/lib/codegen/crm/contacts';
+import { FilterOperatorEnum, SimplePublicObjectInput, SimplePublicObjectInputForCreate } from '@hubspot/api-client/lib/codegen/crm/contacts';
+import { User } from './User.type';
 
 @Injectable()
 export class KeycloakHubspotService {
@@ -79,13 +80,14 @@ export class KeycloakHubspotService {
     }
   }
 
-  async syncUserToHubSpot(user: any): Promise<void> {
+  async syncUserToHubSpot(user: User): Promise<void> {
     try {
       const contactObj: SimplePublicObjectInputForCreate = {
         properties: {
           email: user.email,
           firstname: user.firstName,
           lastname: user.lastName,
+          lastlogin: new Date().toISOString(),
         },
         associations: [],
       };
@@ -159,27 +161,14 @@ export class KeycloakHubspotService {
         },
       );
 
-      const user = response.data;
-
+      const user: User = response.data;
+      
       if (user.email) {
         await this.syncUserToHubSpot(user);
       }
     } catch (error) {
       this.logger.error('Error handling user creation', error.message);
       throw error;
-    }
-  }
-
-  async syncUsers(): Promise<void> {
-    try {
-      const token = await this.getKeycloakToken();
-      const users = await this.getKeycloakUsers(token);
-
-      for (const user of users) {
-        await this.syncUserToHubSpot(user);
-      }
-    } catch (error) {
-      this.logger.error('Error syncing users', error.message);
     }
   }
 }

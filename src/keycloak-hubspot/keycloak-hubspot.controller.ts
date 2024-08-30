@@ -7,17 +7,6 @@ export class KeycloakHubspotController {
 
   constructor(private readonly keycloakHubspotService: KeycloakHubspotService) {}
 
-  @Post('sync')
-  async syncUsers() {
-    try {
-      await this.keycloakHubspotService.syncUsers();
-      return { message: 'User sync completed successfully.' };
-    } catch (error) {
-      this.logger.error('Error syncing users', error.message);
-      return { message: 'Error syncing users.' };
-    }
-  }
-
   @Post('webhook')
   async handleWebhook(@Body() body: any) {
     const { action, userId } = body;
@@ -36,6 +25,12 @@ export class KeycloakHubspotController {
         this.logger.log(`Creating user with ID: ${userId}`);
         await this.keycloakHubspotService.handleUserCreation(userId);
     }
+
+    if (action === 'LOGIN') {
+      this.logger.log(`User with ID: ${userId} Logged in`);
+      await this.keycloakHubspotService.handleUserCreation(userId);
+    }
+  
     return { message: 'Webhook processed successfully.' };
   }
 }
