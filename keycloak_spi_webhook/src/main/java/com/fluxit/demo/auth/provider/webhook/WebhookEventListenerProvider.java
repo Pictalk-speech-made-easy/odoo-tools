@@ -40,12 +40,12 @@ public class WebhookEventListenerProvider implements EventListenerProvider {
         }
 
         if (event.getType() == EventType.LOGIN) {
-            log.info("User deleted: " + event.getUserId());
+            log.info("User login: " + event.getUserId());
             sendWebhook("LOGIN", event.getUserId());
         }
 
         if (event.getType() == EventType.LOGOUT) {
-            log.info("User deleted: " + event.getUserId());
+            log.info("User logout: " + event.getUserId());
             sendWebhook("LOGOUT", event.getUserId());
         }
     }
@@ -58,7 +58,7 @@ public class WebhookEventListenerProvider implements EventListenerProvider {
         }
 
         if (adminEvent.getOperationType() == OperationType.CREATE && adminEvent.getResourceTypeAsString().equals("USER")) {
-            log.info("User deleted by admin: " + adminEvent.getResourcePath());
+            log.info("User created by admin: " + adminEvent.getResourcePath());
             sendWebhook("CREATE", adminEvent.getResourcePath().replaceAll("users/", ""));
         }
     }
