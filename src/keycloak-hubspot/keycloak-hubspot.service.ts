@@ -1,64 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as hubspot from '@hubspot/api-client'
 import axios from 'axios';
-import { FilterOperatorEnum, SimplePublicObjectInput, SimplePublicObjectInputForCreate } from '@hubspot/api-client/lib/codegen/crm/contacts';
+import { FilterOperatorEnum, SimplePublicObjectInputForCreate } from '@hubspot/api-client/lib/codegen/crm/contacts';
 import { User } from './User.type';
 
 @Injectable()
 export class KeycloakHubspotService {
   private readonly logger = new Logger(KeycloakHubspotService.name);
   private hubspotClient: hubspot.Client;
-  private keycloakToken: string | null = null;
-  private tokenExpiration: number | null = null;
 
   constructor() {
     this.hubspotClient = new hubspot.Client({
       accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
     });
-  }
-  
-  private async fetchKeycloakToken(): Promise<string> {
-    try {
-      console.log('fetching keycloak token');
-      const response = await axios.post(
-        `${process.env.KEYCLOAK_BASE_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/token`,
-        new URLSearchParams({
-          grant_type: 'client_credentials',
-          client_id: process.env.KEYCLOAK_CLIENT_ID,
-          client_secret: process.env.KEYCLOAK_CLIENT_SECRET,
-        }),
-      );
-      this.keycloakToken = response.data.access_token;
-      this.tokenExpiration = Date.now() + response.data.expires_in * 1000;
-      return this.keycloakToken;
-    } catch (error) {
-      this.logger.error('Error fetching Keycloak token', error.message);
-      throw error;
-    }
-  }
-
-  async getKeycloakToken(): Promise<string> {
-    if (this.keycloakToken && this.tokenExpiration && Date.now() < this.tokenExpiration) {
-      return this.keycloakToken;
-    }
-    return this.fetchKeycloakToken();
-  }
-
-  async getKeycloakUsers(token: string): Promise<any[]> {
-    try {
-      const response = await axios.get(
-        `${process.env.KEYCLOAK_BASE_URL}/admin/realms/${process.env.KEYCLOAK_REALM}/users`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      return response.data;
-    } catch (error) {
-      this.logger.error('Error fetching users from Keycloak', error.message);
-      throw error;
-    }
   }
 
   async deleteUserFromHubSpot(email: string): Promise<void> {
@@ -123,7 +77,6 @@ export class KeycloakHubspotService {
         sorts: ["-createdate"],
       });
       const existingContact = response.results[0];
-
       if (existingContact && existingContact.id) {
         await this.hubspotClient.crm.contacts.basicApi.update(existingContact.id, contactObj);
         this.logger.log(`Updated contact in HubSpot: ${user.email}`);
@@ -137,23 +90,10 @@ export class KeycloakHubspotService {
     }
   }
 
-  async handleUserDeletion(userId: string): Promise<void> {
+  async handleUserDeletion(user: User): Promise<void> {
     try {
-      const token = await this.getKeycloakToken();
-
-      const response = await axios.get(
-        `${process.env.KEYCLOAK_BASE_URL}/admin/realms/${process.env.KEYCLOAK_REALM}/users/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      const userEmail = response.data.email;
-
-      if (userEmail) {
-        await this.deleteUserFromHubSpot(userEmail);
+      if (user.email) {
+        await this.deleteUserFromHubSpot(user.email);
       }
     } catch (error) {
       this.logger.error('Error handling user deletion', error.message);
@@ -161,26 +101,58 @@ export class KeycloakHubspotService {
     }
   }
 
-  async handleUserCreation(userId: string): Promise<void> {
+  async handleUserCreation(user: User): Promise<void> {
     try {
-      const token = await this.getKeycloakToken();
-
-      const response = await axios.get(
-        `${process.env.KEYCLOAK_BASE_URL}/admin/realms/${process.env.KEYCLOAK_REALM}/users/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      const user: User = response.data;
-      
       if (user.email) {
         await this.syncUserToHubSpot(user);
       }
     } catch (error) {
       this.logger.error('Error handling user creation', error.message);
+      throw error;
+    }
+  }
+
+  
+
+  async submitFormToHubSpot(formId: string, user: User): Promise<void> {
+    try {
+      const url = `https://api.hsforms.com/submissions/v3/integration/secure/submit/62515/${formId}`;
+      
+      const payload = {
+        submittedAt: Date.now(),
+        fields: [
+          { objectTypeId: "0-1", name: "email", value: user.email },
+          { objectTypeId: "0-1", name: "firstname", value: user.firstName },
+          { objectTypeId: "0-1", name: "lastname", value: user.lastName }
+        ],
+        context: {
+          pageName: "automated-form-submission"
+        },
+        legalConsentOptions: {
+          consent: {
+            consentToProcess: true,
+            text: "I agree to allow Pictalk Speech Made Easy to store and process my personal data.",
+            communications: [
+              {
+                value: true,
+                subscriptionTypeId: 999,
+                text: "I agree to receive marketing communications from Example Company."
+              }
+            ]
+          }
+        }
+      };
+
+      await axios.post(url, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`
+        }
+      });
+
+      this.logger.log(`Submitted form to HubSpot: ${formId}`);
+    } catch (error) {
+      this.logger.error('Error submitting form to HubSpot', error.message);
       throw error;
     }
   }
