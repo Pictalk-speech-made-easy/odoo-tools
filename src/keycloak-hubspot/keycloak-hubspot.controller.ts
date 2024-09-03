@@ -15,21 +15,25 @@ export class KeycloakHubspotController {
 
   @Post('webhook')
   async handleWebhook(@Body() body: any) {
-    const { action, userId } = body;
+    const { action, userId, email } = body;
 
+    let user: User;
     try {
-      const token = await this.keycloakService.getKeycloakToken();
+      if (userId) {
+        const token = await this.keycloakService.getKeycloakToken();
 
-      const response = await axios.get(
-        `${process.env.KEYCLOAK_BASE_URL}/admin/realms/${process.env.KEYCLOAK_REALM}/users/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const response = await axios.get(
+          `${process.env.KEYCLOAK_BASE_URL}/admin/realms/${process.env.KEYCLOAK_REALM}/users/${userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           },
-        },
-      );
-
-      const user: User = response.data;
+        );
+        user = response.data;
+      } else if (email) {
+        user = { email };
+      }
 
       if (action === 'DELETE') {
         this.logger.log(`Deleting user with ID: ${user.id}`);
