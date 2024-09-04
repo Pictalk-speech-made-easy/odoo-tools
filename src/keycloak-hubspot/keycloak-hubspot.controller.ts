@@ -15,12 +15,12 @@ export class KeycloakHubspotController {
 
   @Post('webhook')
   async handleWebhook(@Body() body: any) {
-    const { action, userId, email } = body;
+    const { action, userId, email, clientId, firstName, lastName } = body;
 
     console.log('Webhook body:', body);
     let user: User;
     try {
-      if (userId) {
+      if (!email || !firstName || !lastName) {
         try {
         const token = await this.keycloakService.getKeycloakToken();
         const response = await axios.get(
@@ -36,8 +36,8 @@ export class KeycloakHubspotController {
           this.logger.error('Error fetching user from Keycloak', error.message);
           throw error;
         }
-      } else if (email) {
-        user = { email };
+      } else {
+        user = { email, firstName, lastName, id: userId };
       }
 
       if (action === 'DELETE') {

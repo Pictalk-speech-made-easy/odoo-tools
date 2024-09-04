@@ -10,6 +10,16 @@ import org.keycloak.provider.ProviderConfigProperty;
 import java.io.IOException;
 import java.util.List;
 import java.util.Properties;
+
+import javax.net.ssl.SSLContext;
+
+import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
+import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.TrustAllStrategy;
+import org.apache.hc.core5.http2.HttpVersionPolicy;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.jboss.logging.Logger;
 
 public class WebhookEventListenerProviderFactory implements EventListenerProviderFactory {
@@ -18,10 +28,11 @@ public class WebhookEventListenerProviderFactory implements EventListenerProvide
     private static final Logger log = Logger.getLogger(WebhookEventListenerProviderFactory.class);
     protected List<ProviderConfigProperty> configMetadata;
     protected Properties properties = new Properties();
+    private CloseableHttpAsyncClient httpClient;
 
     @Override
     public EventListenerProvider create(KeycloakSession session) {
-        return new WebhookEventListenerProvider(session, webhookUrl);
+        return new WebhookEventListenerProvider(session, webhookUrl, httpClient);
     }
 
     @Override
@@ -43,6 +54,13 @@ public class WebhookEventListenerProviderFactory implements EventListenerProvide
                 }
 
                 log.info("Webhook URL set to: " + this.webhookUrl);
+
+                this.httpClient = HttpAsyncClients.custom()
+                .setVersionPolicy(HttpVersionPolicy.FORCE_HTTP_2)
+                .build();
+
+                this.httpClient.start();
+                log.info("HTTP client started");
             }
         } catch (IOException e) {
             log.error("Failed to load webhook.properties file", e);
@@ -56,7 +74,14 @@ public class WebhookEventListenerProviderFactory implements EventListenerProvide
 
     @Override
     public void close() {
-        // No specific action needed on close
+        log.info("Closing HTTP client");
+        if (httpClient != null) {
+            try {
+                httpClient.close();
+            } catch (IOException e) {
+                log.error("Error closing HTTP client", e);
+            }
+        }
     }
 
     @Override
