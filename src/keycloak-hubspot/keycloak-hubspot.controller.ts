@@ -20,8 +20,8 @@ export class KeycloakHubspotController {
     let user: User;
     try {
       if (userId) {
+        try {
         const token = await this.keycloakService.getKeycloakToken();
-
         const response = await axios.get(
           `${process.env.KEYCLOAK_BASE_URL}/admin/realms/${process.env.KEYCLOAK_REALM}/users/${userId}`,
           {
@@ -31,6 +31,10 @@ export class KeycloakHubspotController {
           },
         );
         user = response.data;
+        } catch (error) {
+          this.logger.error('Error fetching user from Keycloak', error.message);
+          throw error;
+        }
       } else if (email) {
         user = { email };
       }
@@ -58,6 +62,7 @@ export class KeycloakHubspotController {
       
     } catch (error) {
       this.logger.error('Error handling webhook', error.message);
+      this.logger.error(error.stack);
       throw error;
     }
     return { message: 'Webhook processed successfully.' };
