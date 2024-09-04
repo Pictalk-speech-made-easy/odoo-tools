@@ -17,6 +17,7 @@ export class KeycloakHubspotController {
   async handleWebhook(@Body() body: any) {
     const { action, userId, email } = body;
 
+    console.log('Webhook body:', body);
     let user: User;
     try {
       if (userId) {
