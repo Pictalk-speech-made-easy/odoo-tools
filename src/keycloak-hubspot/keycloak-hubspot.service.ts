@@ -85,6 +85,7 @@ export class KeycloakHubspotService {
       } else {
         await this.hubspotClient.crm.contacts.basicApi.create(contactObj);
         this.logger.log(`Created new contact in HubSpot: ${user.email}`);
+        await this.submitFormToHubSpot("145301327", "88b207f7-fc36-48a9-b034-b5076fba65ee",user);
       }
     } catch (error) {
       this.logger.error('Error syncing user to HubSpot', error.message);
@@ -151,7 +152,7 @@ export class KeycloakHubspotService {
       await axios.post(url, payload, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.HUBSPOT_ACCESS_TOKEN}`
+          'Authorization': `Bearer ${process.env.HUBSPOT_MARKETING_TOKEN}`
         }
       });
 
