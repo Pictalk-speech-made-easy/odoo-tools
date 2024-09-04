@@ -32,7 +32,7 @@ export class KeycloakHubspotService {
         ],
         properties: ['email'],
         limit: 1,
-        after: "20",
+        after: "0",
         sorts: ["-createdate"],
       });
       console.log('[KeycloakHubspotService] response', response);
