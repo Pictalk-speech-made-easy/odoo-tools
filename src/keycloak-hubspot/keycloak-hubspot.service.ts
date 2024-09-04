@@ -114,9 +114,9 @@ export class KeycloakHubspotService {
 
   
 
-  async submitFormToHubSpot(formId: string, user: User): Promise<void> {
+  async submitFormToHubSpot(portalId: string, formId: string, user: User): Promise<void> {
     try {
-      const url = `https://api.hsforms.com/submissions/v3/integration/secure/submit/62515/${formId}`;
+      const url = `https://api.hsforms.com/submissions/v3/integration/secure/submit/${portalId}/${formId}`;
       
       const payload = {
         submittedAt: Date.now(),

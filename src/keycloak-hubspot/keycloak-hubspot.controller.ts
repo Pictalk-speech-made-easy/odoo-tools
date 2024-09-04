@@ -43,12 +43,12 @@ export class KeycloakHubspotController {
       if (action === 'DELETE_ACCOUNT') {
           this.logger.log(`Deleting account with ID: ${user.id}`);
           await this.keycloakHubspotService.handleUserDeletion(user);
-        }
+      }
 
       if (action === 'REGISTER') {
           this.logger.log(`Creating user with ID: ${user.id}`);
+          await this.keycloakHubspotService.submitFormToHubSpot("145301327", "88b207f7-fc36-48a9-b034-b5076fba65ee",user);
           await this.keycloakHubspotService.handleUserCreation(user);
-          
       }
 
       if (action === 'LOGIN') {
