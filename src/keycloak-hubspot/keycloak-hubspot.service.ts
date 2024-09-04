@@ -17,6 +17,7 @@ export class KeycloakHubspotService {
 
   async deleteUserFromHubSpot(email: string): Promise<void> {
     try {
+      console.log('[KeycloakHubspotService] deleteUserFromHubSpot', email);
       const response = await this.hubspotClient.crm.contacts.searchApi.doSearch({
         filterGroups: [
           {
@@ -34,6 +35,7 @@ export class KeycloakHubspotService {
         after: "20",
         sorts: ["-createdate"],
       });
+      console.log('[KeycloakHubspotService] response', response);
       const contact = response.results[0];
       if (contact.id) {
         await this.hubspotClient.crm.contacts.basicApi.archive(contact.id);
@@ -92,6 +94,7 @@ export class KeycloakHubspotService {
 
   async handleUserDeletion(user: User): Promise<void> {
     try {
+      console.log('[KeycloakHubspotService] handleUserDeletion', user);
       if (user.email) {
         await this.deleteUserFromHubSpot(user.email);
       }
@@ -103,6 +106,7 @@ export class KeycloakHubspotService {
 
   async handleUserCreation(user: User): Promise<void> {
     try {
+      console.log('[KeycloakHubspotService] handleUserCreation', user);
       if (user.email) {
         await this.syncUserToHubSpot(user);
       }
@@ -116,6 +120,7 @@ export class KeycloakHubspotService {
 
   async submitFormToHubSpot(portalId: string, formId: string, user: User): Promise<void> {
     try {
+      console.log('[KeycloakHubspotService] submitFormToHubSpot', portalId, formId, user);
       const url = `https://api.hsforms.com/submissions/v3/integration/secure/submit/${portalId}/${formId}`;
       
       const payload = {
