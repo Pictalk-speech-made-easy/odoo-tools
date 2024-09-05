@@ -65,12 +65,20 @@ public class WebhookEventListenerProvider implements EventListenerProvider {
         if (adminEvent.getOperationType() == OperationType.DELETE && adminEvent.getResourceTypeAsString().equals("USER")) {
             log.info("User deleted by admin: " + adminEvent.getResourcePath());
             String userId = adminEvent.getResourcePath().replaceAll("users/", "");
+            if (userId == null) {
+                log.error("User ID is null");
+                return;
+            }
             sendWebhook("DELETE", getUser(userId), "admin");
         }
 
         if (adminEvent.getOperationType() == OperationType.CREATE && adminEvent.getResourceTypeAsString().equals("USER")) {
             log.info("User created by admin: " + adminEvent.getResourcePath());
             String userId = adminEvent.getResourcePath().replaceAll("users/", "");
+            if (userId == null) {
+                log.error("User ID is null");
+                return;
+            }
             sendWebhook("CREATE", getUser(userId), "admin");
         }
     }
@@ -118,6 +126,10 @@ public class WebhookEventListenerProvider implements EventListenerProvider {
     }
 
     private UserModel getUser(String userId) {
+        if (userId == null) {
+            log.error("User ID is null");
+            return null;
+        }
         UserProvider userProvider = session.users();
         UserModel user = userProvider.getUserById(session.getContext().getRealm(), userId);
         return user != null ? user : null;
