@@ -33,6 +33,9 @@ export class KeycloakHubspotController {
           },
         );
         user = response.data;
+        if (!user.email) {
+          return;
+        }
         } catch (error) {
           this.logger.error('Error fetching user from Keycloak', error.message);
           throw error;
