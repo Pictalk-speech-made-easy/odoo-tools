@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as hubspot from '@hubspot/api-client'
 import axios from 'axios';
 import { FilterOperatorEnum, SimplePublicObjectInputForCreate } from '@hubspot/api-client/lib/codegen/crm/contacts';
-import { User } from './User.type';
+import { AdditionalProperties, User } from './User.type';
 
 @Injectable()
 export class KeycloakHubspotService {
@@ -49,14 +49,17 @@ export class KeycloakHubspotService {
     }
   }
 
-  async syncUserToHubSpot(user: User): Promise<void> {
+  async syncUserToHubSpot(user: User, additionalProperties?: AdditionalProperties): Promise<void> {
     try {
       const contactObj: SimplePublicObjectInputForCreate = {
         properties: {
           email: user.email,
           firstname: user.firstName,
           lastname: user.lastName,
-          //lastlogin: new Date().toISOString(),
+          ...(additionalProperties.clientId === "pictime" ? { "lastlogin_agenda": new Date().toISOString() }: {}),
+          ...(additionalProperties.clientId === "maker" ? { "lastlogin_creator": new Date().toISOString() }: {}),
+          ...(additionalProperties.clientId === "pictalk" ? { "lastlogin_pictalk": new Date().toISOString() }: {}),
+          ...(additionalProperties.clientId === "pictranslate" ? { "lastlogin_pictranslate": new Date().toISOString() }: {}),
         },
         associations: [],
       };
@@ -105,11 +108,11 @@ export class KeycloakHubspotService {
     }
   }
 
-  async handleUserCreation(user: User): Promise<void> {
+  async handleUserCreation(user: User, additionalProperties?: AdditionalProperties): Promise<void> {
     try {
       console.log('[KeycloakHubspotService] handleUserCreation', user);
       if (user.email) {
-        await this.syncUserToHubSpot(user);
+        await this.syncUserToHubSpot(user, additionalProperties);
       }
     } catch (error) {
       this.logger.error('Error handling user creation', error.message);

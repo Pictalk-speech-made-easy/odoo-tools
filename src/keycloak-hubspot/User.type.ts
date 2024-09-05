@@ -48,3 +48,7 @@ type FederatedIdentityRepresentation = {
     userId?: string;
     userName?: string;
 };
+
+export type AdditionalProperties = {
+    clientId: string;
+}
