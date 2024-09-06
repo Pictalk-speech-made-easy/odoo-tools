@@ -52,24 +52,14 @@ export class KeycloakHubspotController {
         additionalProperties = { source };
       }
 
-      if (action === 'DELETE') {
+      if (action === 'DELETE' || action === 'DELETE_ACCOUNT') {
         this.logger.log(`Deleting user with ID: ${user.id}`);
         await this.keycloakHubspotService.handleUserDeletion(user);
       }
 
-      if (action === 'DELETE_ACCOUNT') {
-          this.logger.log(`Deleting account with ID: ${user.id}`);
-          await this.keycloakHubspotService.handleUserDeletion(user);
-      }
-
-      if (action === 'REGISTER') {
+      if (action === 'REGISTER' || action === 'NEWSLETTER' || action === 'LOGIN') {
           this.logger.log(`Creating user with ID: ${user.id}`);
           await this.keycloakHubspotService.handleUserCreation(user, additionalProperties);
-      }
-
-      if (action === 'LOGIN') {
-        this.logger.log(`User with ID: ${user.id} Logged in`);
-        await this.keycloakHubspotService.handleUserCreation(user, additionalProperties);
       }
       
     } catch (error) {
