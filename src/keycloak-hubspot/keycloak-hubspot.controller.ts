@@ -19,7 +19,7 @@ export class KeycloakHubspotController {
 
     console.log('Webhook body:', body);
     let user: User;
-    let additionalProperties: AdditionalProperties;
+    let additionalProperties: AdditionalProperties = {};
     try {
       if ((!email || !firstName || !lastName) && action !== "NEWSLETTER") { // If newsletter is true, user will not exist in keycloak
         try {
@@ -45,11 +45,11 @@ export class KeycloakHubspotController {
       }
 
       if (clientId) {
-        additionalProperties = { clientId };
+        additionalProperties.clientId = clientId;
       }
 
       if (source) {
-        additionalProperties = { source };
+        additionalProperties.source = source;
       }
 
       if (action === 'DELETE' || action === 'DELETE_ACCOUNT') {

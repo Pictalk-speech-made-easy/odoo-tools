@@ -49,7 +49,7 @@ export class KeycloakHubspotService {
     }
   }
 
-  async syncUserToHubSpot(user: User, additionalProperties?: AdditionalProperties): Promise<void> {
+  async syncUserToHubSpot(user: User, additionalProperties: AdditionalProperties): Promise<void> {
     try {
       const contactObj: SimplePublicObjectInputForCreate = {
         properties: {
@@ -120,8 +120,6 @@ export class KeycloakHubspotService {
       throw error;
     }
   }
-
-  
 
   async submitFormToHubSpot(portalId: string, formId: string, user: User): Promise<void> {
     try {
