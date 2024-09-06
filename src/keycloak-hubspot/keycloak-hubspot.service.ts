@@ -132,8 +132,8 @@ export class KeycloakHubspotService {
         submittedAt: Date.now(),
         fields: [
           { objectTypeId: "0-1", name: "email", value: user.email },
-          { objectTypeId: "0-1", name: "firstname", value: user.firstName },
-          { objectTypeId: "0-1", name: "lastname", value: user.lastName }
+          ...(user.firstName ? [{ objectTypeId: "0-1", name: "firstname", value: user.firstName }] : []),
+          ...(user.lastName ? [{ objectTypeId: "0-1", name: "lastname", value: user.lastName }] : [])
         ],
         context: {
           pageName: "automated-form-submission"
