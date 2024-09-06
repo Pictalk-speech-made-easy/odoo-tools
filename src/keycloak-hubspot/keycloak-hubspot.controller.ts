@@ -15,13 +15,13 @@ export class KeycloakHubspotController {
 
   @Post('webhook')
   async handleWebhook(@Body() body: any) {
-    const { action, userId, email, clientId, firstName, lastName } = body;
+    const { action, userId, email, clientId, firstName, lastName, source } = body;
 
     console.log('Webhook body:', body);
     let user: User;
     let additionalProperties: AdditionalProperties;
     try {
-      if (!email || !firstName || !lastName) {
+      if ((!email || !firstName || !lastName) && action !== "NEWSLETTER") { // If newsletter is true, user will not exist in keycloak
         try {
         const token = await this.keycloakService.getKeycloakToken();
         const response = await axios.get(
@@ -46,6 +46,10 @@ export class KeycloakHubspotController {
 
       if (clientId) {
         additionalProperties = { clientId };
+      }
+
+      if (source) {
+        additionalProperties = { source };
       }
 
       if (action === 'DELETE') {

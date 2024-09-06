@@ -50,5 +50,6 @@ type FederatedIdentityRepresentation = {
 };
 
 export type AdditionalProperties = {
-    clientId: string;
+    clientId?: string;
+    source?: string;
 }

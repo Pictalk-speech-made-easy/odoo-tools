@@ -54,12 +54,13 @@ export class KeycloakHubspotService {
       const contactObj: SimplePublicObjectInputForCreate = {
         properties: {
           email: user.email,
-          firstname: user.firstName,
-          lastname: user.lastName,
+          firstname: user.firstName ?? undefined,
+          lastname: user.lastName ?? undefined,
           ...(additionalProperties.clientId === "pictime" ? { "lastlogin_agenda": new Date().toISOString() }: {}),
           ...(additionalProperties.clientId === "maker" ? { "lastlogin_creator": new Date().toISOString() }: {}),
           ...(additionalProperties.clientId === "pictalk" ? { "lastlogin_pictalk": new Date().toISOString() }: {}),
           ...(additionalProperties.clientId === "pictranslate" ? { "lastlogin_pictranslate": new Date().toISOString() }: {}),
+          ...(additionalProperties.source ? { "source_channel": additionalProperties.source }: {}),
         },
         associations: [],
       };
