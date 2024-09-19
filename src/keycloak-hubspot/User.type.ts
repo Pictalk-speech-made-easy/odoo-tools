@@ -1,6 +1,6 @@
 export type User = {
     access?: Map<string, boolean>;
-    attributes?: Map<string, string[]>;
+    attributes?: { [key: string]: string[] };
     clientConsents?: UserConsentRepresentation[];
     clientRoles?: Map<string, string[]>;
     createdTimestamp?: number;
@@ -51,5 +51,7 @@ type FederatedIdentityRepresentation = {
 
 export type AdditionalProperties = {
     clientId?: string;
-    source?: string;
+    source?: "search" | "social" | "friend" | "other";
+    userType?: "parent" | "liberal" | "structure" | "school" | "other";
+    marketingOptIn?: boolean;
 }

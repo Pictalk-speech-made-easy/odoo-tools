@@ -1,17 +1,14 @@
 import { Controller, Post, Body, Logger } from '@nestjs/common';
-import { KeycloakHubspotService } from './keycloak-hubspot.service';
 import axios from 'axios';
 import { AdditionalProperties, User } from './User.type';
 import { KeycloakService } from 'src/keycloak.service';
-import { EmailService } from 'src/email.service';
+import { KeycloakOdooService } from './odoo.service';
 
 @Controller('keycloak-hubspot')
 export class KeycloakHubspotController {
   private readonly logger = new Logger(KeycloakHubspotController.name);
-  private keycloakToken: string | null = null;
-  private tokenExpiration: number | null = null;
 
-  constructor(private keycloakService: KeycloakService, private readonly keycloakHubspotService: KeycloakHubspotService) {}
+  constructor(private keycloakService: KeycloakService, private readonly odooServices: KeycloakOdooService) {}
 
   @Post('webhook')
   async handleWebhook(@Body() body: any) {
@@ -54,12 +51,12 @@ export class KeycloakHubspotController {
 
       if (action === 'DELETE' || action === 'DELETE_ACCOUNT') {
         this.logger.log(`Deleting user with ID: ${user.id}`);
-        await this.keycloakHubspotService.handleUserDeletion(user);
+        await this.odooServices.deleteUserFromOdoo(user.email);
       }
 
       if (action === 'REGISTER' || action === 'NEWSLETTER' || action === 'LOGIN') {
           this.logger.log(`Creating user with ID: ${user.id}`);
-          await this.keycloakHubspotService.handleUserCreation(user, additionalProperties);
+          await this.odooServices.syncUserToOdoo(user, additionalProperties);
       }
       
     } catch (error) {
