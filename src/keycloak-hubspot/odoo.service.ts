@@ -227,6 +227,7 @@ export class KeycloakOdooService {
           },
           id: new Date().getTime(),
         });
+        console.log(createResponse.data);
         const newContactId = createResponse.data.result;
         this.logger.log(
           `Created new contact in Odoo: ${user.email} with ID ${newContactId}`,
