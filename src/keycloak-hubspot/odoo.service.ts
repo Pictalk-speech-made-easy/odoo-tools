@@ -104,7 +104,16 @@ export class KeycloakOdooService {
     try {
       const uid = await this.authenticate();
       const formattedDate = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
-      const formattedCreatedTimestamp = format(new Date(user.createdTimestamp), 'yyyy-MM-dd HH:mm:ss');
+
+      // Extract values from user.attributes, handling arrays
+      const locale = user.attributes?.locale?.[0] || null;
+      const marketingOptIn =
+        user.attributes?.marketingOptIn?.[0] === 'on' ? true : false;
+      const analyticsConsent =
+        user.attributes?.analyticsConsent?.[0] === 'on' ? true : false;
+      const userType = user.attributes?.userType?.[0] || null;
+      const sourceMedium = user.attributes?.sourceMedium?.[0] || null;
+
       // Search for existing contact and fetch specific fields
       const searchResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
         jsonrpc: '2.0',
@@ -136,50 +145,75 @@ export class KeycloakOdooService {
       let contactObj: any = {
         name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
         email: user.email,
-        x_studio_cration_du_compte_keycloak: formattedCreatedTimestamp,
-        ...(user.attributes?.sourceMedium
-          ? { x_studio_source: user.attributes.sourceMedium }
-          : {}),
-        ...(user.attributes?.marketingOptIn !== undefined
-          ? { x_studio_marketing: user.attributes.marketingOptIn }
-          : {}),
-        ...(user.attributes?.userType
-          ? { x_studio_type_dutilisateur: user.attributes?.userType }
-          : {}),
-        ...(user.attributes?.locale ? { lang: user.attributes.locale } : {}),
+        // Map extracted attributes to Odoo fields
+        ...(sourceMedium ? { x_studio_source: sourceMedium } : {}),
+        x_studio_marketing: marketingOptIn,
+        ...(userType ? { x_studio_type_dutilisateur: userType } : {}),
+        ...(locale ? { lang: locale } : {}),
       };
 
-      if (existingContacts.length > 0) {
-        const contact = existingContacts[0];
-        const contactId = contact.id;
+      // Determine which application the client ID corresponds to
+      const clientId = additionalProperties?.clientId;
+      if (clientId) {
+        const lastLoginFieldMap = {
+          pictime: 'x_studio_dernire_connexion_agenda',
+          maker: 'x_studio_lastlogin_creator',
+          pictalk: 'x_studio_lastlogin_pictalk',
+          pictranslate: 'x_studio_lastlogin_pictranslate',
+        };
 
-        // Initialize variables
-        let nombreDeConnexions = contact.x_studio_nombre_de_connexions_agenda || 0;
-        let derniereConnexion = contact.x_studio_dernire_connexion_agenda;
-        let frequenceDeConnexion = contact.x_studio_frquence_de_connexion_agenda || 0;
+        const nombreConnexionsFieldMap = {
+          pictime: 'x_studio_nombre_de_connexions_agenda',
+        };
 
-        // Update the number of connections
-        nombreDeConnexions += 1;
+        const frequenceConnexionsFieldMap = {
+          pictime: 'x_studio_frquence_de_connexion_agenda',
+        };
 
-        // Calculate the frequency of connections
-        if (derniereConnexion) {
-          const lastLoginDate = parseISO(derniereConnexion);
-          const daysSinceLastLogin = differenceInDays(new Date(), lastLoginDate);
-          if (daysSinceLastLogin > 0) {
-            frequenceDeConnexion = nombreDeConnexions / daysSinceLastLogin;
-          }
-        } else {
-          // First login, set frequency to 1
-          frequenceDeConnexion = 1;
+        // Update last login field
+        const lastLoginField = lastLoginFieldMap[clientId];
+        if (lastLoginField) {
+          contactObj[lastLoginField] = formattedDate;
         }
 
-        // Update contact object with computed values
-        contactObj = {
-          ...contactObj,
-          x_studio_nombre_de_connexions_agenda: nombreDeConnexions,
-          x_studio_frquence_de_connexion_agenda: frequenceDeConnexion,
-          x_studio_dernire_connexion_agenda: formattedDate,
-        };
+        // Handle nombre de connexions and frequence de connexion
+        if (clientId === 'pictime') {
+          let nombreDeConnexions =
+            existingContacts[0]?.[nombreConnexionsFieldMap[clientId]] || 0;
+          let derniereConnexion =
+            existingContacts[0]?.[lastLoginFieldMap[clientId]];
+          let frequenceDeConnexion =
+            existingContacts[0]?.[frequenceConnexionsFieldMap[clientId]] || 0;
+
+          // Update the number of connections
+          nombreDeConnexions += 1;
+
+          // Calculate the frequency of connections
+          if (derniereConnexion) {
+            const lastLoginDate = parseISO(derniereConnexion);
+            const daysSinceLastLogin = differenceInDays(
+              new Date(),
+              lastLoginDate,
+            );
+            if (daysSinceLastLogin > 0) {
+              frequenceDeConnexion = nombreDeConnexions / daysSinceLastLogin;
+            }
+          } else {
+            // First login, set frequency to 1
+            frequenceDeConnexion = 1;
+          }
+
+          // Update contact object with computed values
+          contactObj = {
+            ...contactObj,
+            [nombreConnexionsFieldMap[clientId]]: nombreDeConnexions,
+            [frequenceConnexionsFieldMap[clientId]]: frequenceDeConnexion,
+          };
+        }
+      }
+
+      if (existingContacts.length > 0) {
+        const contactId = existingContacts[0].id;
 
         // Update the existing contact
         await axios.post(`${this.odooUrl}/jsonrpc`, {
@@ -202,12 +236,14 @@ export class KeycloakOdooService {
         this.logger.log(`Updated contact in Odoo: ${user.email}`);
       } else {
         // For new contacts, initialize the number of connections and frequency
-        contactObj = {
-          ...contactObj,
-          x_studio_nombre_de_connexions_agenda: 1,
-          x_studio_frquence_de_connexion_agenda: 1,
-          x_studio_dernire_connexion_agenda: formattedDate,
-        };
+        if (clientId === 'pictime') {
+          contactObj = {
+            ...contactObj,
+            x_studio_nombre_de_connexions_agenda: 1,
+            x_studio_frquence_de_connexion_agenda: 1,
+            x_studio_dernire_connexion_agenda: formattedDate,
+          };
+        }
 
         // Create a new contact
         const createResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
@@ -227,7 +263,6 @@ export class KeycloakOdooService {
           },
           id: new Date().getTime(),
         });
-        console.log(createResponse.data);
         const newContactId = createResponse.data.result;
         this.logger.log(
           `Created new contact in Odoo: ${user.email} with ID ${newContactId}`,
