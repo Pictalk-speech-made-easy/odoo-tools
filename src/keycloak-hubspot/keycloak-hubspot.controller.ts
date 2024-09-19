@@ -48,7 +48,7 @@ export class KeycloakHubspotController {
       if (source) {
         additionalProperties.source = source;
       }
-
+      console.log(user);
       if (action === 'DELETE' || action === 'DELETE_ACCOUNT') {
         this.logger.log(`Deleting user with ID: ${user.id}`);
         await this.odooServices.deleteUserFromOdoo(user.email);
