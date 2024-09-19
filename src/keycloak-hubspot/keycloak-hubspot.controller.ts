@@ -18,7 +18,7 @@ export class KeycloakHubspotController {
     let user: User;
     let additionalProperties: AdditionalProperties = {};
     try {
-      if ((!email || !firstName || !lastName) && action !== "NEWSLETTER") { // If newsletter is true, user will not exist in keycloak
+      if (action !== "NEWSLETTER") { // If newsletter is true, user will not exist in keycloak
         try {
         const token = await this.keycloakService.getKeycloakToken();
         const response = await axios.get(
