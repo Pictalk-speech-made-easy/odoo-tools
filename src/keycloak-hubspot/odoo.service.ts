@@ -137,14 +137,14 @@ export class KeycloakOdooService {
         name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
         email: user.email,
         x_studio_cration_du_compte_keycloak: formattedCreatedTimestamp,
-        ...(additionalProperties?.source
-          ? { x_studio_source: additionalProperties.source }
+        ...(user.attributes?.sourceMedium
+          ? { x_studio_source: user.attributes.sourceMedium }
           : {}),
-        ...(additionalProperties?.marketingOptIn !== undefined
-          ? { x_studio_marketing: additionalProperties.marketingOptIn }
+        ...(user.attributes?.marketingOptIn !== undefined
+          ? { x_studio_marketing: user.attributes.marketingOptIn }
           : {}),
-        ...(additionalProperties?.userType
-          ? { x_studio_type_dutilisateur: additionalProperties.userType }
+        ...(user.attributes?.userType
+          ? { x_studio_type_dutilisateur: user.attributes?.userType }
           : {}),
         ...(user.attributes?.locale ? { lang: user.attributes.locale } : {}),
       };
