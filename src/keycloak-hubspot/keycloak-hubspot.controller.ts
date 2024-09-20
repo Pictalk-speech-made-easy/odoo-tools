@@ -66,4 +66,29 @@ export class KeycloakHubspotController {
     }
     return { message: 'Webhook processed successfully.' };
   }
+
+  @Post('pictalk-webhook')
+  async handlePictalkWebhook(@Body() body: any) {
+    const { action, userId, email, firstName, lastName, language, createdDate } = body;
+
+    console.log('Webhook body:', body);
+    let user: User = {};
+    user.id = userId;
+    user.attributes = {
+      locale: [language]
+    };
+    user.firstName = firstName;
+    user.lastName = lastName;
+    user.email = email;
+    user.createdTimestamp = createdDate;
+    let additionalProperties: AdditionalProperties = {};
+    additionalProperties.clientId = "pictalk";
+    console.log(user);
+
+    if (action === 'REGISTER'|| action === 'LOGIN') {
+        this.logger.log(`Creating user with ID: ${user.id}`);
+        await this.odooServices.syncUserToOdoo(user, additionalProperties);
+    }
+    return { message: 'Webhook processed successfully.' };
+  }
 }

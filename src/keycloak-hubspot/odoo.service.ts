@@ -104,8 +104,7 @@ export class KeycloakOdooService {
     try {
       const uid = await this.authenticate();
       const formattedDate = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
-
-      // Extract values from user.attributes, handling arrays
+      
       const locale = user.attributes?.locale?.[0] || null;
       const marketingOptIn =
         user.attributes?.marketingOptIn?.[0] === 'on' ? true : false;
@@ -114,7 +113,6 @@ export class KeycloakOdooService {
       const userType = user.attributes?.userType?.[0] || null;
       const sourceMedium = user.attributes?.sourceMedium?.[0] || null;
 
-      // Search for existing contact and fetch specific fields
       const searchResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
         jsonrpc: '2.0',
         method: 'call',
@@ -134,6 +132,9 @@ export class KeycloakOdooService {
                 'x_studio_nombre_de_connexions_agenda',
                 'x_studio_dernire_connexion_agenda',
                 'x_studio_frquence_de_connexion_agenda',
+                'x_studio_dernire_connexion_pictalk',
+                'x_studio_nombre_de_connexions_pictalk',
+                'x_studio_frquence_de_connexion_pictalk'
               ],
             },
           ],
@@ -145,50 +146,58 @@ export class KeycloakOdooService {
       let contactObj: any = {
         name: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim(),
         email: user.email,
-        // Map extracted attributes to Odoo fields
         ...(sourceMedium ? { x_studio_source: sourceMedium } : {}),
         x_studio_marketing: marketingOptIn,
         ...(userType ? { x_studio_type_dutilisateur: userType } : {}),
         ...(locale ? { lang: locale } : {}),
       };
 
-      // Determine which application the client ID corresponds to
       const clientId = additionalProperties?.clientId;
       if (clientId) {
         const lastLoginFieldMap = {
           pictime: 'x_studio_dernire_connexion_agenda',
           maker: 'x_studio_lastlogin_creator',
-          pictalk: 'x_studio_lastlogin_pictalk',
+          pictalk: 'x_studio_dernire_connexion_pictalk',
           pictranslate: 'x_studio_lastlogin_pictranslate',
         };
 
+        const creationDateFieldMap = {
+          pictime: 'x_studio_cration_du_compte_keycloak',
+          pictalk: 'x_studio_cration_du_compte_pictalk'
+        }
+
         const nombreConnexionsFieldMap = {
           pictime: 'x_studio_nombre_de_connexions_agenda',
+          pictalk: 'x_studio_nombre_de_connexions_pictalk'
         };
 
         const frequenceConnexionsFieldMap = {
           pictime: 'x_studio_frquence_de_connexion_agenda',
+          pictalk: 'x_studio_frquence_de_connexion_pictalk'
         };
 
-        // Update last login field
         const lastLoginField = lastLoginFieldMap[clientId];
         if (lastLoginField) {
           contactObj[lastLoginField] = formattedDate;
         }
 
-        // Handle nombre de connexions and frequence de connexion
-        if (clientId === 'pictime') {
+        let formattedCreatedDate;
+        if (clientId === "pictime") formattedCreatedDate = format(new Date(user.createdTimestamp * 1000), 'yyyy-MM-dd HH:mm:ss');
+        if (clientId === "pictalk") formattedCreatedDate = format(user.createdTimestamp, 'yyyy-MM-dd HH:mm:ss');
+        const createdDateField = creationDateFieldMap[clientId];
+        if (createdDateField && formattedCreatedDate){  
+          contactObj[createdDateField] = formattedCreatedDate;
+        }
+
+        if (clientId === 'pictime' || clientId === 'pictalk') {
           let nombreDeConnexions =
             existingContacts[0]?.[nombreConnexionsFieldMap[clientId]] || 0;
           let derniereConnexion =
             existingContacts[0]?.[lastLoginFieldMap[clientId]];
           let frequenceDeConnexion =
             existingContacts[0]?.[frequenceConnexionsFieldMap[clientId]] || 0;
-
-          // Update the number of connections
           nombreDeConnexions += 1;
 
-          // Calculate the frequency of connections
           if (derniereConnexion) {
             const lastLoginDate = parseISO(derniereConnexion);
             const daysSinceLastLogin = differenceInDays(
@@ -199,11 +208,9 @@ export class KeycloakOdooService {
               frequenceDeConnexion = nombreDeConnexions / daysSinceLastLogin;
             }
           } else {
-            // First login, set frequency to 1
             frequenceDeConnexion = 1;
           }
 
-          // Update contact object with computed values
           contactObj = {
             ...contactObj,
             [nombreConnexionsFieldMap[clientId]]: nombreDeConnexions,
@@ -215,7 +222,6 @@ export class KeycloakOdooService {
       if (existingContacts.length > 0) {
         const contactId = existingContacts[0].id;
 
-        // Update the existing contact
         await axios.post(`${this.odooUrl}/jsonrpc`, {
           jsonrpc: '2.0',
           method: 'call',
@@ -235,7 +241,6 @@ export class KeycloakOdooService {
         });
         this.logger.log(`Updated contact in Odoo: ${user.email}`);
       } else {
-        // For new contacts, initialize the number of connections and frequency
         if (clientId === 'pictime') {
           contactObj = {
             ...contactObj,
@@ -245,7 +250,6 @@ export class KeycloakOdooService {
           };
         }
 
-        // Create a new contact
         const createResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
           jsonrpc: '2.0',
           method: 'call',
