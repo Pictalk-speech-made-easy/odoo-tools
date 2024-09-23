@@ -48,7 +48,6 @@ export class KeycloakHubspotController {
       if (source) {
         additionalProperties.source = source;
       }
-      console.log(user);
       if (action === 'DELETE' || action === 'DELETE_ACCOUNT') {
         this.logger.log(`Deleting user with ID: ${user.id}`);
         await this.odooServices.deleteUserFromOdoo(user.email);
@@ -83,7 +82,6 @@ export class KeycloakHubspotController {
     user.createdTimestamp = createdDate;
     let additionalProperties: AdditionalProperties = {};
     additionalProperties.clientId = "pictalk";
-    console.log(user);
 
     if (action === 'REGISTER'|| action === 'LOGIN') {
         this.logger.log(`Creating user with ID: ${user.id}`);
