@@ -182,7 +182,8 @@ export class KeycloakOdooService {
         }
 
         let formattedCreatedDate;
-        if (clientId === "pictime") formattedCreatedDate = format(new Date(user.createdTimestamp * 1000), 'yyyy-MM-dd HH:mm:ss');
+        const userCreatedDate = new Date(convertToMilliseconds(user.createdTimestamp));
+        if (clientId === "pictime") formattedCreatedDate = format(userCreatedDate, 'yyyy-MM-dd HH:mm:ss');
         if (clientId === "pictalk") formattedCreatedDate = format(user.createdTimestamp, 'yyyy-MM-dd HH:mm:ss');
         const createdDateField = creationDateFieldMap[clientId];
         if (createdDateField && formattedCreatedDate){  
@@ -218,7 +219,8 @@ export class KeycloakOdooService {
           };
         }
       }
-
+      console.log('user', user);
+      console.log('contactObj', contactObj);
       if (existingContacts.length > 0) {
         const contactId = existingContacts[0].id;
 
@@ -267,6 +269,10 @@ export class KeycloakOdooService {
           },
           id: new Date().getTime(),
         });
+        if (!createResponse.data.result) {
+          console.log(createResponse.data.error);
+          throw new Error(`Failed to create contact in Odoo: ${createResponse.data.error.data.name}`);
+        }
         const newContactId = createResponse.data.result;
         this.logger.log(
           `Created new contact in Odoo: ${user.email} with ID ${newContactId}`,
@@ -294,4 +300,13 @@ function mapLocale(locale: string): string {
   }
 
   return localeMap[locale] || 'en_US'; // Default to 'en_US' if not found
+}
+
+function convertToMilliseconds(timestamp: number): number {
+  // If the timestamp is in seconds (10 digits), multiply by 1000 to convert to milliseconds
+  if (timestamp < 1e11) {
+    return timestamp * 1000;
+  }
+  // If the timestamp is already in milliseconds (13 digits), return as is
+  return timestamp;
 }
