@@ -105,7 +105,7 @@ export class KeycloakOdooService {
       const uid = await this.authenticate();
       const formattedDate = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
       
-      const locale = user.attributes?.locale?.[0] || null;
+      const locale = mapLocale(user.attributes?.locale?.[0] || 'fr');
       const marketingOptIn =
         user.attributes?.marketingOptIn?.[0] === 'on' ? true : false;
       const analyticsConsent =
@@ -277,4 +277,21 @@ export class KeycloakOdooService {
       throw error;
     }
   }
+}
+
+function mapLocale(locale: string): string {
+  const localeMap: { [key: string]: string } = {
+    'en': 'en_US',
+    'fr': 'fr_FR',
+    'de': 'de_DE',
+    'es': 'es_ES',
+    'it': 'it_IT',
+    'pt': 'pt_PT',
+  };
+
+  if (locale === 'en_US' || locale === 'fr_FR' || locale === 'de_DE' || locale === 'es_ES' || locale === 'it_IT' || locale === 'pt_PT') {
+    return locale;
+  }
+
+  return localeMap[locale] || 'en_US'; // Default to 'en_US' if not found
 }
