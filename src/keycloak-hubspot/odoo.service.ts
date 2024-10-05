@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { User, AdditionalProperties } from './User.type';
 import { format, differenceInDays, parseISO } from 'date-fns';
+import { CreateLeadDto } from './contact-lead.dto';
 
 @Injectable()
 export class KeycloakOdooService {
@@ -283,7 +284,100 @@ export class KeycloakOdooService {
       throw error;
     }
   }
+
+  /**
+   * Create a Odoo lead from an online form submission
+   */
+  async createLead(lead: CreateLeadDto): Promise<any> {
+    try {   
+    const {
+        firstname,
+        lastname,
+        email,
+        company,
+        companySize,
+        profession,
+        country,
+      } = lead;
+  
+      // Prepare the data for Odoo
+      const leadData = {
+        name: `${firstname} ${lastname}`,
+        contact_name: `${firstname} ${lastname}`,
+        email_from: email,
+        partner_name: company,
+        description: `Company Size: ${companySize}, Profession: ${profession}`,
+        country_id: await this.getCountryId(country),
+      };
+
+      const uid = await this.authenticate();
+
+      const createResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
+        jsonrpc: '2.0',
+        method: 'call',
+        params: {
+          service: 'object',
+          method: 'execute_kw',
+          args: [
+            this.odooDb,
+            uid,
+            this.odooPassword,
+            'crm.lead',
+            'create',
+            [leadData],
+          ],
+        },
+        id: new Date().getTime(),
+      });
+      if (!createResponse.data.result) {
+        console.log(createResponse.data.error);
+        throw new Error(`Failed to create contact in Odoo: ${createResponse.data.error.data.name}`);
+      }
+  
+      return;
+    } catch (err) {
+      this.logger.error('Error creating lead in Odoo', err.message);
+      throw err;
+    }
+  }
+
+  async searchRead(model: string, domain: any[], fields: string[]): Promise<any[]> {
+    const uid = await this.authenticate();
+    const response = await axios.post(`${this.odooUrl}/jsonrpc`, {
+      jsonrpc: '2.0',
+      method: 'call',
+      params: {
+        service: 'object',
+        method: 'execute_kw',
+        args: [
+          this.odooDb,
+          uid,
+          this.odooPassword,
+          model,
+          'search_read',
+          [domain],
+          { fields },
+        ],
+      },
+      id: Date.now(),
+    });
+    return response.data.result;
+  }
+
+  async getCountryId(countryCode: string): Promise<number> {
+    const countries = await this.searchRead(
+      'res.country',
+      [['code', '=', countryCode.toUpperCase()]],
+      ['id'],
+    );
+    if (countries.length > 0) {
+      return countries[0].id;
+    } else {
+      throw new Error(`Country with code ${countryCode} not found in Odoo.`);
+    }
+  }
 }
+
 
 function mapLocale(locale: string): string {
   const localeMap: { [key: string]: string } = {

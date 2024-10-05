@@ -3,6 +3,7 @@ import axios from 'axios';
 import { AdditionalProperties, User } from './User.type';
 import { KeycloakService } from 'src/keycloak.service';
 import { KeycloakOdooService } from './odoo.service';
+import { CreateLeadDto } from './contact-lead.dto';
 
 @Controller('keycloak-hubspot')
 export class KeycloakHubspotController {
@@ -87,6 +88,15 @@ export class KeycloakHubspotController {
         this.logger.log(`Creating user with ID: ${user.id}`);
         await this.odooServices.syncUserToOdoo(user, additionalProperties);
     }
+    return { message: 'Webhook processed successfully.' };
+  }
+
+  @Post('create-lead')
+  async handleBusinessWebhook(@Body() createLeadDto: CreateLeadDto) {
+
+    console.log('Webhook body:', createLeadDto);
+    await this.odooServices.createLead(createLeadDto);
+    
     return { message: 'Webhook processed successfully.' };
   }
 }
