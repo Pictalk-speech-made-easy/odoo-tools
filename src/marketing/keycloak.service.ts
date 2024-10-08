@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import axios from "axios";
-import { User } from "./keycloak-hubspot/User.type";
+import { User } from "./User.type";
 
 @Injectable()
 export class KeycloakService {

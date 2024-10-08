@@ -1,14 +1,17 @@
 import { Module } from '@nestjs/common';
-import { KeycloakHubspotController } from './keycloak-hubspot/keycloak-hubspot.controller';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { KeycloakService } from './keycloak.service';
-import { KeycloakOdooService } from './keycloak-hubspot/odoo.service';
+import { MarketingModule } from './marketing/marketing.module';
+import { SubscriptionModule } from './subscription/subscription.module';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthGuard, ResourceGuard, RoleGuard } from 'nest-keycloak-connect';
 
 @Module({
-  imports: [ConfigModule.forRoot(), ScheduleModule.forRoot()],
-  controllers: [KeycloakHubspotController],
-  providers: [KeycloakService, KeycloakOdooService],
-  exports: [ KeycloakService],
+  imports: [MarketingModule, SubscriptionModule, ConfigModule.forRoot(), ScheduleModule.forRoot()],
+  controllers: [],
+  exports: [],
+  providers: [
+    
+  ],
 })
 export class AppModule {}

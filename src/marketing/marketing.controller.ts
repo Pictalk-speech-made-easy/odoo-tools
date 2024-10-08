@@ -1,13 +1,13 @@
 import { Controller, Post, Body, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { AdditionalProperties, User } from './User.type';
-import { KeycloakService } from 'src/keycloak.service';
+import { KeycloakService } from 'src/marketing/keycloak.service';
 import { KeycloakOdooService } from './odoo.service';
 import { CreateLeadDto } from './contact-lead.dto';
 
-@Controller('keycloak-hubspot')
-export class KeycloakHubspotController {
-  private readonly logger = new Logger(KeycloakHubspotController.name);
+@Controller('marketing')
+export class MarketingController {
+  private readonly logger = new Logger(MarketingController.name);
 
   constructor(private keycloakService: KeycloakService, private readonly odooServices: KeycloakOdooService) {}
 

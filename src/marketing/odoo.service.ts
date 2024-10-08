@@ -375,7 +375,7 @@ export class KeycloakOdooService {
     } else {
       throw new Error(`Country with code ${countryCode} not found in Odoo.`);
     }
-  }
+  }  
 }
 
 
