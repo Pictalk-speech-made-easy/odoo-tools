@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Logger } from '@nestjs/common';
+import { Controller, Post, Body, Logger, UsePipes, ValidationPipe } from '@nestjs/common';
 import axios from 'axios';
 import { AdditionalProperties, User } from './User.type';
 import { KeycloakService } from 'src/marketing/keycloak.service';
@@ -92,11 +92,10 @@ export class MarketingController {
   }
 
   @Post('create-lead')
+  @UsePipes(new ValidationPipe({ transform: true }))
   async handleBusinessWebhook(@Body() createLeadDto: CreateLeadDto) {
-
     console.log('Webhook body:', createLeadDto);
     await this.odooServices.createLead(createLeadDto);
-    
     return { message: 'Webhook processed successfully.' };
   }
 }

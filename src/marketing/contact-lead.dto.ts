@@ -1,5 +1,5 @@
 // dto/create-lead.dto.ts
-import { IsEmail, IsNotEmpty } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateLeadDto {
   @IsNotEmpty()
@@ -8,18 +8,19 @@ export class CreateLeadDto {
   @IsNotEmpty()
   lastname: string;
 
+  @IsNotEmpty()
   @IsEmail()
   email: string;
 
-  @IsNotEmpty()
-  company: string;
+  @IsOptional()
+  company?: string | undefined;
 
-  @IsNotEmpty()
-  companySize: string;
+  @IsOptional()
+  companySize?: string | undefined;
 
-  @IsNotEmpty()
-  profession: string;
+  @IsOptional()
+  profession?: string | undefined;
 
-  @IsNotEmpty()
-  country: string;
+  @IsOptional()
+  country?: string | undefined;
 }
