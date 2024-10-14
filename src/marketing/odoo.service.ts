@@ -3,6 +3,7 @@ import axios from 'axios';
 import { User, AdditionalProperties } from './User.type';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { CreateLeadDto } from './contact-lead.dto';
+import { OdooLead } from './odoo-lead.dto';
 
 @Injectable()
 export class KeycloakOdooService {
@@ -301,14 +302,22 @@ export class KeycloakOdooService {
       } = lead;
   
       // Prepare the data for Odoo
-      const leadData = {
+      let leadData: OdooLead = {
         name: `${firstname} ${lastname}`,
         contact_name: `${firstname} ${lastname}`,
-        email_from: email,
-        partner_name: company,
-        description: `Company Size: ${companySize}, Profession: ${profession}`,
-        country_id: await this.getCountryId(country),
+        email_from: email
       };
+      if (company) {
+        leadData.partner_name = company;
+      }
+      
+      if (companySize && profession) {
+        leadData.description = `Company Size: ${companySize}, Profession: ${profession}`;
+      }
+      
+      if (country) {
+        leadData.country_id = await this.getCountryId(country);
+      }
 
       const uid = await this.authenticate();
 
