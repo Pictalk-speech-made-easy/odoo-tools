@@ -23,4 +23,7 @@ export class CreateLeadDto {
 
   @IsOptional()
   country?: string | undefined;
+
+  @IsOptional()
+  message?: string | undefined;
 }

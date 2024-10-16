@@ -299,6 +299,7 @@ export class KeycloakOdooService {
         companySize,
         profession,
         country,
+        message,
       } = lead;
   
       // Prepare the data for Odoo
@@ -311,8 +312,17 @@ export class KeycloakOdooService {
         leadData.partner_name = company;
       }
       
-      if (companySize && profession) {
-        leadData.description = `Company Size: ${companySize}, Profession: ${profession}`;
+      leadData.description = "";
+      if (profession) {
+        leadData.description = `${leadData.description} Profession: ${profession}`;
+      }
+
+      if (companySize) {
+        leadData.description = `${leadData.description} Company Size: ${companySize}`;
+      }
+
+      if (message) {
+        leadData.description = `${leadData.description} Message: ${message}`;
       }
       
       if (country) {
