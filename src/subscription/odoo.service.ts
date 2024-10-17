@@ -250,7 +250,7 @@ export class SubscriptionOdooService {
           if (!partnerId) {
             this.logger.log(`No partner found with email: ${email}`);
             return {
-                tier: 'free',
+                tier: 'basic',
               };
           }
       
@@ -401,7 +401,7 @@ export class SubscriptionOdooService {
                   };
                 } else if (productName === 'Agenda Free' || productPrice === 0) {
                   return {
-                    tier: 'free',
+                    tier: 'basic',
                     startDate: subscription.start_date,
                     nextInvoiceDate: subscription.next_invoice_date,
                   };
@@ -411,7 +411,7 @@ export class SubscriptionOdooService {
           }
         }
         return {
-            tier: 'free',
+            tier: 'basic',
           };
       }
     
