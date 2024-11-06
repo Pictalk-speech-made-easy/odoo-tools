@@ -319,9 +319,8 @@ export class SubscriptionOdooService {
         /**
    * Retrieve prices for Agenda Free and Agenda Plus
    */
-  async getAgendaProductPrices(email: string): Promise<{ free: number; plus: number }> {
+  async getAgendaProductPrices(): Promise<{ free: number; plus: number }> {
     try {
-      this.logger.log(`Retrieving prices for Agenda Free and Agenda Plus for user: ${email}`);
       
       // Authenticate to get the user ID
       const uid = await this.authenticate();

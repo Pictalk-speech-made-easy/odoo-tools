@@ -22,8 +22,7 @@ export class SubscriptionController {
   async getPlans(
     @AuthenticatedUser() user: UserDto,
   ) {
-    console.log(user.email);
-    return await this.subscriptionOdooService.getAgendaProductPrices(user.email);
+    return await this.subscriptionOdooService.getAgendaProductPrices();
   }
 
   @Post('plus')
