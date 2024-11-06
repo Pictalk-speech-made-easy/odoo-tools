@@ -19,7 +19,6 @@ export class SubscriptionController {
   }
 
   @Get('plans')
-  @UseGuards(AuthGuard)
   async getPlans(
     @AuthenticatedUser() user: UserDto,
   ) {
