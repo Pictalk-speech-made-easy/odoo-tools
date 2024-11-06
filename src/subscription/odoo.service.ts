@@ -316,7 +316,68 @@ export class SubscriptionOdooService {
           return null;
         }
       }
-    
+        /**
+   * Retrieve prices for Agenda Free and Agenda Plus
+   */
+  async getAgendaProductPrices(email: string): Promise<{ free: number; plus: number }> {
+    try {
+      this.logger.log(`Retrieving prices for Agenda Free and Agenda Plus for user: ${email}`);
+      
+      // Authenticate to get the user ID
+      const uid = await this.authenticate();
+      
+      // Get prices for "Agenda Free" and "Agenda Plus"
+      const agendaFreePrice = await this.getProductPrice(uid, 'Agenda basic (free)');
+      const agendaPlusPrice = await this.getProductPrice(uid, 'Agenda Plus');
+      
+      this.logger.log(`Retrieved prices - Agenda Free: ${agendaFreePrice}, Agenda Plus: ${agendaPlusPrice}`);
+      
+      return {
+        free: agendaFreePrice,
+        plus: agendaPlusPrice,
+      };
+    } catch (error) {
+      this.logger.error('Error retrieving product prices', error.message);
+      throw error;
+    }
+  }
+        /**
+   * Get the price of a specified product by name
+   */
+  private async getProductPrice(uid: number, productName: string): Promise<number> {
+    try {
+      // Search for the product by name
+      const productSearchResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
+        jsonrpc: '2.0',
+        method: 'call',
+        params: {
+          service: 'object',
+          method: 'execute_kw',
+          args: [
+            this.odooDb,
+            uid,
+            this.odooPassword,
+            'product.product',
+            'search_read',
+            [[['name', '=', productName]]],
+            { fields: ['list_price'] },
+          ],
+        },
+        id: new Date().getTime(),
+      });
+      
+      const products = productSearchResponse.data.result;
+      if (products && products.length > 0) {
+        return products[0].list_price; // Return the price of the product
+      } else {
+        throw new Error(`Product "${productName}" not found in Odoo.`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to retrieve price for product "${productName}":`, error.message);
+      throw error;
+    }
+  }
+
       private async getSubscriptionLevel(uid: number, partnerId: number): Promise<SubscriptionDto> {
         // Search for active subscriptions
         const searchResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
