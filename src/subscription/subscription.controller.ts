@@ -18,6 +18,13 @@ export class SubscriptionController {
     return await this.subscriptionOdooService.checkUserSubscription(user.email);
   }
 
+  @Get('plans')
+  async getPlans(
+    @AuthenticatedUser() user: UserDto,
+  ) {
+    return await this.subscriptionOdooService.getAgendaProductPrices();
+  }
+
   @Post('plus')
   @UseGuards(AuthGuard)
   async obtainPlusSubscription(

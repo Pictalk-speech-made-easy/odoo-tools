@@ -316,7 +316,108 @@ export class SubscriptionOdooService {
           return null;
         }
       }
-    
+        /**
+   * Retrieve prices for Agenda Free and Agenda Plus
+   */
+  async getAgendaProductPrices(): Promise<{ free: any; plus: any, pro: any }> {
+    try {
+      
+      // Authenticate to get the user ID
+      const uid = await this.authenticate();
+      
+      // Get prices for "Agenda Free" and "Agenda Plus"
+      const agendaFreePrice = await this.getProductPrice(uid, 'Agenda basic (free)');
+      const agendaPlusPrice = await this.getProductPrice(uid, 'Agenda Plus');
+      const agendaProPrice = await this.getProductPrice(uid, 'Agenda Pro');
+      
+      this.logger.log(`Retrieved prices - Agenda Free: ${agendaFreePrice}, Agenda Plus: ${agendaPlusPrice}`);
+      
+      return {
+        free: agendaFreePrice,
+        plus: agendaPlusPrice,
+        pro: agendaProPrice,
+      };
+    } catch (error) {
+      this.logger.error('Error retrieving product prices', error.message);
+      throw error;
+    }
+  }
+        /**
+   * Get the price of a specified product by name
+   */
+  private async getProductPrice(uid: number, productName: string): Promise<{"unique": number, "month": number, "year": number}[]> {
+    try {
+      // Search for the product by name
+      const productSearchResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
+        jsonrpc: '2.0',
+        method: 'call',
+        params: {
+          service: 'object',
+          method: 'execute_kw',
+          args: [
+            this.odooDb,
+            uid,
+            this.odooPassword,
+            'product.product',
+            'search_read',
+            [[['name', '=', productName]]],
+            { fields: ['list_price', 'product_subscription_pricing_ids'] },
+          ],
+        },
+        id: new Date().getTime(),
+      });
+      
+      const products = productSearchResponse.data.result;
+      if (products && products.length > 0) {
+        console.log(products);
+          let prices = [];
+          for (const price of products[0]?.product_subscription_pricing_ids) {
+            console.log(price);
+            const subscriptionPricingDataResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
+              jsonrpc: '2.0',
+              method: 'call',
+              params: {
+              service: 'object',
+              method: 'execute_kw',
+              args: [
+                  this.odooDb,
+                  uid,
+                  this.odooPassword,
+                  'sale.subscription.pricing',
+                  'read',
+                  [price], // Use the first pricing rule for simplicity
+                  { fields: ['id', 'plan_id', 'price'] },
+              ],
+              },
+              id: new Date().getTime(),
+            });
+            console.log(subscriptionPricingDataResponse.data);
+            if (!subscriptionPricingDataResponse.data.result) {
+              console.log(subscriptionPricingDataResponse.data.error);
+              throw new Error(`Failed to create sale order in Odoo: ${subscriptionPricingDataResponse.data.error.data.message}`);
+            }
+            const pricesData = subscriptionPricingDataResponse.data.result;
+            for (const priceData of pricesData) {
+              console.log(priceData.plan_id);
+              if (priceData.plan_id.includes(1)) {
+                prices.push({"month": priceData.price});
+              }
+              if (priceData.plan_id.includes(2)) {
+                prices.push({"year": priceData.price});
+              }
+            }
+          }
+          prices.push({"unique": products[0].list_price});
+        return Object.assign({}, ...prices);
+          } else {
+            throw new Error(`Product "${productName}" not found in Odoo.`);
+          }
+        } catch (error) {
+          this.logger.error(`Failed to retrieve price for product "${productName}":`, error.message);
+          throw error;
+        }
+      }
+
       private async getSubscriptionLevel(uid: number, partnerId: number): Promise<SubscriptionDto> {
         // Search for active subscriptions
         const searchResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
