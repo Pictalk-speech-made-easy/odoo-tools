@@ -506,6 +506,12 @@ export class SubscriptionOdooService {
                     startDate: subscription.start_date,
                     nextInvoiceDate: subscription.next_invoice_date,
                   };
+                } else if (productName === 'Agenda Pro') {
+                  return {
+                    tier: 'pro',
+                    startDate: subscription.start_date,
+                    nextInvoiceDate: subscription.next_invoice_date,
+                  };
                 }
               }
             }
