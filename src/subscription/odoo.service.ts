@@ -372,7 +372,7 @@ export class SubscriptionOdooService {
         console.log(products);
           let prices = [];
           for (const price of products[0]?.product_subscription_pricing_ids) {
-            console.log(price);
+            console.log("price",price);
             const subscriptionPricingDataResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
               jsonrpc: '2.0',
               method: 'call',
@@ -391,7 +391,7 @@ export class SubscriptionOdooService {
               },
               id: new Date().getTime(),
             });
-            console.log(subscriptionPricingDataResponse.data);
+            console.log("subscriptionPricingDataResponse", JSON.stringify(subscriptionPricingDataResponse.data));
             if (!subscriptionPricingDataResponse.data.result) {
               console.log(subscriptionPricingDataResponse.data.error);
               throw new Error(`Failed to create sale order in Odoo: ${subscriptionPricingDataResponse.data.error.data.message}`);
@@ -400,14 +400,17 @@ export class SubscriptionOdooService {
             for (const priceData of pricesData) {
               console.log(priceData.plan_id);
               if (priceData.plan_id.includes(1)) {
-                prices.push({"month": priceData.price});
+                const priceWithFlatTax = Math.round((priceData.price * 1.2 + Number.EPSILON) * 100) / 100;
+                prices.push({"month": priceWithFlatTax});
               }
+              
               if (priceData.plan_id.includes(2)) {
-                prices.push({"year": priceData.price});
+                const priceWithFlatTax = Math.round((priceData.price * 1.2 + Number.EPSILON) * 100) / 100;
+                prices.push({"year": priceWithFlatTax});
               }
             }
           }
-          prices.push({"unique": products[0].list_price});
+          prices.push({"unique": Math.round(products[0].list_price * 1.2)});
         return Object.assign({}, ...prices);
           } else {
             throw new Error(`Product "${productName}" not found in Odoo.`);
