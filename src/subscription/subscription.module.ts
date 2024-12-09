@@ -5,6 +5,7 @@ import { SubscriptionOdooService } from "./odoo.service";
 import { KeycloakConnectModule } from "nest-keycloak-connect";
 import keycloakConfig from "src/config/keycloak.config";
 import { CacheModule } from "@nestjs/cache-manager";
+import { SharedCacheService } from "./shared.cache.service";
 
 @Module({
     imports: [
@@ -13,8 +14,8 @@ import { CacheModule } from "@nestjs/cache-manager";
         KeycloakConnectModule.register(keycloakConfig()),
     ],
     controllers: [SubscriptionController],
-    providers: [SubscriptionOdooService],
-    exports: [SubscriptionOdooService],
+    providers: [SubscriptionOdooService, SharedCacheService],
+    exports: [SubscriptionOdooService, SharedCacheService],
   })
   export class SubscriptionModule {}
   

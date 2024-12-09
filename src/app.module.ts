@@ -5,9 +5,10 @@ import { MarketingModule } from './marketing/marketing.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard, ResourceGuard, RoleGuard } from 'nest-keycloak-connect';
+import { AiModule } from './ai/ai.module';
 
 @Module({
-  imports: [MarketingModule, SubscriptionModule, ConfigModule.forRoot(), ScheduleModule.forRoot()],
+  imports: [AiModule, MarketingModule, SubscriptionModule, ConfigModule.forRoot(), ScheduleModule.forRoot()],
   controllers: [],
   exports: [],
   providers: [
