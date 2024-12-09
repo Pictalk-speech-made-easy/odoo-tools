@@ -1,6 +1,6 @@
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { Cache } from 'cache-manager';
-import { Body, Controller, Get, Inject, Logger, UnauthorizedException, UseGuards, UsePipes, ValidationPipe } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Logger, Post, UnauthorizedException, UseGuards, UsePipes, ValidationPipe } from "@nestjs/common";
 import OpenAI from 'openai';
 import { AuthenticatedUser, AuthGuard } from "nest-keycloak-connect";
 import { UserDto } from "src/subscription/user.dto";
@@ -19,7 +19,7 @@ export class AiController {
 
   constructor(private sharedCacheService: SharedCacheService) {}
   
-  @Get('sequences')
+  @Post('sequences')
   @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   async generateSequence(
@@ -42,12 +42,12 @@ export class AiController {
     return response;
   }
 
-  @Get('board')
+  @Post('board')
   @UseGuards(AuthGuard)
   async generateBoard(@Body() body: any) {
   }
 
-  @Get('agenda')
+  @Post('agenda')
   @UseGuards(AuthGuard)
   async generateAgenda(@Body() body: any) {
   }
