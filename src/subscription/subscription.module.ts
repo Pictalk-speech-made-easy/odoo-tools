@@ -12,7 +12,7 @@ import keycloakConfig from "src/config/keycloak.config";
     ],
     controllers: [SubscriptionController],
     providers: [SubscriptionOdooService],
-    exports: [],
+    exports: [SubscriptionOdooService],
   })
   export class SubscriptionModule {}
   
