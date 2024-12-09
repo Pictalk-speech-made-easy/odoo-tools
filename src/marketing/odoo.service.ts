@@ -4,6 +4,7 @@ import { User, AdditionalProperties } from './User.type';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { CreateLeadDto } from './contact-lead.dto';
 import { OdooLead } from './odoo-lead.dto';
+import { SubscriptionOdooService } from 'src/subscription/odoo.service';
 
 @Injectable()
 export class KeycloakOdooService {
@@ -12,7 +13,7 @@ export class KeycloakOdooService {
   private readonly odooDb = process.env.ODOO_DB;
   private readonly odooUsername = process.env.ODOO_USER;
   private readonly odooPassword = process.env.ODOO_API;
-
+  constructor(private subscriptionOdooService: SubscriptionOdooService) {}
   /**
    * Authenticate with Odoo and get the user ID (uid)
    */
@@ -246,6 +247,16 @@ export class KeycloakOdooService {
         this.logger.log(`Updated contact in Odoo: ${user.email}`);
       } else {
         if (clientId === 'pictime') {
+          const today = new Date();
+          const oneMonth = new Date();
+          oneMonth.setMonth(oneMonth.getMonth() + 1);
+          const firstMarch = new Date(2025, 2, 1);
+          if (today.getTime() < firstMarch.getTime()) {
+            const firstApril = new Date(2025, 3, 1);
+            this.subscriptionOdooService.createAgendaPlusSubscription(user.email, 100, firstApril);
+          } else {
+            this.subscriptionOdooService.createAgendaPlusSubscription(user.email, 100, oneMonth);
+          }
           contactObj = {
             ...contactObj,
             x_studio_nombre_de_connexions_agenda: 1,

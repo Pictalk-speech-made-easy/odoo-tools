@@ -116,7 +116,7 @@ export class SubscriptionOdooService {
         }
       }
     
-      private async createSaleOrder(uid: number, partnerId: number, productId: number): Promise<number> {
+      private async createSaleOrder(uid: number, partnerId: number, productId: number, discount?: number, expiry?: Date): Promise<number> {
         // Step 1: Retrieve product variant details
         const productDataResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
             jsonrpc: '2.0',
@@ -201,10 +201,13 @@ export class SubscriptionOdooService {
         const orderLine = {
             product_id: productId,
             product_uom_qty: 1,
-            discount: 100.0,
             name: productData.name,
             product_uom: productData.uom_id[0],
         };
+
+        if (discount && discount >= 0 && discount <= 100) {
+            orderLine['discount'] = discount;
+        }
         
         // Create the sale order with subscription fields
         const createResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
@@ -221,9 +224,10 @@ export class SubscriptionOdooService {
                 'create',
                 [{
                 partner_id: partnerId,
-                date_order: formatDate(new Date()),
+                date_order: formatDateTime(new Date()),
                 is_subscription: true,
                 plan_id: 1,
+                end_date: expiry ? formatDate(expiry) : false,
                 order_line: [[0, 0, orderLine]],
                 }],
             ],
@@ -256,7 +260,6 @@ export class SubscriptionOdooService {
       
           // Step 2: Check active subscriptions
           const subscriptionLevel = await this.getSubscriptionLevel(uid, partnerId);
-      
           this.logger.log(`User ${email} has a ${subscriptionLevel} subscription.`);
           return subscriptionLevel;
         } catch (error) {
@@ -265,7 +268,7 @@ export class SubscriptionOdooService {
         }
       }
     
-      async createAgendaPlusSubscription(email: string): Promise<void> {
+      async createAgendaPlusSubscription(email: string, discount?: number, expiry?: Date): Promise<void> {
         try {
           this.logger.log(`Creating Agenda Plus subscription for: ${email}`);
           const uid = await this.authenticate();
@@ -277,7 +280,7 @@ export class SubscriptionOdooService {
           const productId = await this.getProductId(uid, 'Agenda Plus');
       
           // Step 3: Create the sale order with a 100% discount
-          const orderId = await this.createSaleOrder(uid, partnerId, productId);
+          const orderId = await this.createSaleOrder(uid, partnerId, productId, discount, expiry);
       
           // Step 4: Confirm the sale order
           await this.confirmSaleOrder(uid, orderId);
@@ -547,7 +550,7 @@ export class SubscriptionOdooService {
       }
 }
 
-function formatDate(date) {
+function formatDateTime(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based in JS
     const day = String(date.getDate()).padStart(2, '0');
@@ -556,4 +559,12 @@ function formatDate(date) {
     const seconds = String(date.getSeconds()).padStart(2, '0');
     
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-  }
+}
+
+function formatDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based in JS
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+}
