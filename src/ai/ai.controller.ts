@@ -29,7 +29,7 @@ export class AiController {
     console.log(subscription);
     if (!subscription || subscription.tier === 'free') throw new UnauthorizedException('You need to be a subscriber to use this feature');
     const response = await this.openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",
         messages: [system_prompt, 
             {
                 role: "user",
