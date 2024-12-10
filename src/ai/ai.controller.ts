@@ -33,7 +33,7 @@ export class AiController {
         messages: [system_prompt, 
             {
                 role: "user",
-                content: `Instruction: ${body.instruction}\nLevel: ${body.level}`
+                content: `Instruction: ${body.instruction}\nLevel: ${body.level}\nLanguage: ${body.language}`
             }
         ],
         temperature: 0.7,
