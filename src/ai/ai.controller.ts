@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Logger, Post, UnauthorizedException, UseGuards, UsePipes, ValidationPipe } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Logger, Post, UnauthorizedException, UseGuards, UsePipes, ValidationPipe } from "@nestjs/common";
 import OpenAI from 'openai';
 import { AuthenticatedUser, AuthGuard } from "nest-keycloak-connect";
 import { UserDto } from "src/subscription/user.dto";
@@ -39,7 +39,7 @@ export class AiController {
     });
     // Check if response contains error
     if (response.choices[0].message.content.includes('error')) {
-        throw new BadRequestException(JSON.parse(response.choices[0].message.content)); 
+        throw new ForbiddenException(JSON.parse(response.choices[0].message.content)); 
     }
     const content = JSON.parse(response.choices[0].message.content);
     return content;
