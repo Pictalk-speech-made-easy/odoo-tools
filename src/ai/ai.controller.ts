@@ -1,11 +1,15 @@
-import { Body, Controller, ForbiddenException, Logger, Post, UnauthorizedException, UseGuards, UsePipes, ValidationPipe } from "@nestjs/common";
+import { BadRequestException, Body, Controller, ForbiddenException, Logger, Post, UnauthorizedException, UseGuards, UsePipes, ValidationPipe } from "@nestjs/common";
 import OpenAI from 'openai';
 import { AuthenticatedUser, AuthGuard } from "nest-keycloak-connect";
 import { UserDto } from "src/subscription/user.dto";
-import { system_prompt } from "./sequence.prompt";
+import { event_system_prompt, sequence_system_prompt } from "./sequence.prompt";
 import { SequencePromptDto } from "./sequence.prompt.dto";
 import { SharedCacheService } from "src/subscription/shared.cache.service";
 import { SubscriptionDto } from "src/subscription/subscription.dto";
+import { EventResponseDto } from "./event.response.dto";
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { SequenceResponseDto } from "./sequence.response.dto";
 
 @Controller('ai')
 export class AiController {
@@ -22,13 +26,14 @@ export class AiController {
   @UsePipes(new ValidationPipe({ transform: true }))
   async generateSequence(
     @Body() body: SequencePromptDto,
-    @AuthenticatedUser() user: UserDto,) {
+    @AuthenticatedUser() user: UserDto
+  ) {
     const subscription: SubscriptionDto = await this.sharedCacheService.get(user.email) as SubscriptionDto;
     console.log(subscription);
     if (!subscription || subscription.tier === 'free') throw new UnauthorizedException('You need to be a subscriber to use this feature');
     const response = await this.openai.chat.completions.create({
         model: "gpt-4o-mini",
-        messages: [system_prompt, 
+        messages: [sequence_system_prompt, 
             {
                 role: "user",
                 content: `Instruction: ${body.instruction}\nLevel: ${body.level}\nLanguage: ${body.language}`
@@ -41,8 +46,16 @@ export class AiController {
     if (response.choices[0].message.content.includes('error')) {
         throw new ForbiddenException(JSON.parse(response.choices[0].message.content)); 
     }
-    const content = JSON.parse(response.choices[0].message.content);
-    return content;
+
+    const parsedContent = JSON.parse(response.choices[0].message.content);
+    const eventResponse = plainToInstance(SequenceResponseDto, parsedContent);
+    // Validate the transformed instance
+    const errors = await validate(eventResponse);
+    if (errors.length > 0) {
+      throw new BadRequestException('Invalid response format');
+    }
+
+    return eventResponse;
   }
 
   @Post('board')
@@ -50,8 +63,37 @@ export class AiController {
   async generateBoard(@Body() body: any) {
   }
 
-  @Post('agenda')
+  @Post('event')
   @UseGuards(AuthGuard)
-  async generateAgenda(@Body() body: any) {
+  async generateAgenda(
+    @Body() body: SequencePromptDto,
+    @AuthenticatedUser() user: UserDto
+  ): Promise<EventResponseDto> {
+    const subscription: SubscriptionDto = await this.sharedCacheService.get(user.email) as SubscriptionDto;
+    if (!subscription || subscription.tier === 'free') throw new UnauthorizedException('You need to be a subscriber to use this feature');
+    const response = await this.openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [event_system_prompt, 
+            {
+                role: "user",
+                content: `Instruction: ${body.instruction}\nLevel: ${body.level}\nLanguage: ${body.language}`
+            }
+        ],
+        temperature: 0.7,
+        
+    });
+    // Check if response contains error
+    if (response.choices[0].message.content.includes('error')) {
+        throw new ForbiddenException(JSON.parse(response.choices[0].message.content)); 
+    }
+    const parsedContent = JSON.parse(response.choices[0].message.content);
+    const eventResponse = plainToInstance(EventResponseDto, parsedContent);
+    // Validate the transformed instance
+    const errors = await validate(eventResponse);
+    if (errors.length > 0) {
+      throw new BadRequestException('Invalid response format');
+    }
+
+    return eventResponse;
   }
 }
