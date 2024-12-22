@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { ForbiddenException, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import axios from 'axios';
 import { SubscriptionDto } from "./subscription.dto";
 
@@ -117,6 +117,37 @@ export class SubscriptionOdooService {
       }
     
       private async createSaleOrder(uid: number, partnerId: number, productId: number, discount?: number, expiry?: Date): Promise<number> {
+        const existingOrdersResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
+          jsonrpc: '2.0',
+          method: 'call',
+          params: {
+            service: 'object',
+            method: 'execute_kw',
+            args: [
+              this.odooDb,
+              uid,
+              this.odooPassword,
+              'sale.order',
+              'search_read',
+              [
+                [
+                  ['partner_id', '=', partnerId],
+                  ['is_subscription', '=', true],
+                  // Possibly look for the same product or same plan
+                  // or check if there's an unconfirmed or in "draft" status order
+                ],
+              ],
+              { fields: ['id', 'state'] },
+            ],
+          },
+          id: new Date().getTime(),
+        });
+        
+        const existingOrders = existingOrdersResponse.data.result;
+        if (existingOrders && existingOrders.length > 0) {
+          throw new ForbiddenException(`User already has an active subscription.`);
+        }
+        
         // Step 1: Retrieve product variant details
         const productDataResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
             jsonrpc: '2.0',
