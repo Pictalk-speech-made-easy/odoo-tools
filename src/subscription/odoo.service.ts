@@ -1,10 +1,11 @@
 import { ForbiddenException, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import axios from 'axios';
 import { SubscriptionDto } from "./subscription.dto";
+import { SharedCacheService } from "./shared.cache.service";
 
 @Injectable()
 export class SubscriptionOdooService {
-    constructor() {}
+    constructor(private sharedCacheService: SharedCacheService) {}
     private readonly odooUrl = process.env.ODOO_URL;
     private readonly odooDb = process.env.ODOO_DB;
     private readonly odooUsername = process.env.ODOO_USER;
@@ -315,7 +316,7 @@ export class SubscriptionOdooService {
       
           // Step 4: Confirm the sale order
           await this.confirmSaleOrder(uid, orderId);
-      
+          await this.sharedCacheService.set(email, {trier : 'plus', startDate: new Date().toISOString(), nextInvoiceDate: new Date().toISOString()});
           this.logger.log(`Successfully created Agenda Plus subscription for: ${email}`);
         } catch (error) {
           this.logger.error('Error creating Agenda Plus subscription', error.message);
