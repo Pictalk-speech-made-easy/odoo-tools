@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, ForbiddenException, Logger, Post, UnauthorizedException, UseGuards, UsePipes, ValidationPipe } from "@nestjs/common";
 import OpenAI from 'openai';
+import { ThrottlerGuard, Throttle } from "@nestjs/throttler"; // <-- Import
 import { AuthenticatedUser, AuthGuard } from "nest-keycloak-connect";
 import { UserDto } from "src/subscription/user.dto";
 import { event_system_prompt, sequence_system_prompt } from "./sequence.prompt";
@@ -12,6 +13,7 @@ import { validate } from 'class-validator';
 import { SequenceResponseDto } from "./sequence.response.dto";
 
 @Controller('ai')
+@UseGuards(ThrottlerGuard)
 export class AiController {
   private readonly logger = new Logger(AiController.name);
   private readonly apiKey = process.env.OPENAI_API_KEY;
@@ -22,6 +24,7 @@ export class AiController {
   constructor(private sharedCacheService: SharedCacheService) {}
   
   @Post('sequences')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe({ transform: true }))
   async generateSequence(
@@ -64,6 +67,7 @@ export class AiController {
   }
 
   @Post('event')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseGuards(AuthGuard)
   async generateAgenda(
     @Body() body: SequencePromptDto,
