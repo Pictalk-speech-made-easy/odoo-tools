@@ -1,15 +1,45 @@
-import { Controller, Post, Body, Logger, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Body, Logger, UsePipes, ValidationPipe, Get, BadRequestException, UseGuards } from '@nestjs/common';
 import axios from 'axios';
 import { AdditionalProperties, User } from './User.type';
 import { KeycloakService } from 'src/marketing/keycloak.service';
 import { KeycloakOdooService } from './odoo.service';
 import { CreateLeadDto } from './contact-lead.dto';
+import { AuthenticatedUser, AuthGuard } from 'nest-keycloak-connect';
+import { UserDto } from 'src/subscription/user.dto';
 
 @Controller('marketing')
 export class MarketingController {
   private readonly logger = new Logger(MarketingController.name);
 
   constructor(private keycloakService: KeycloakService, private readonly odooServices: KeycloakOdooService) {}
+
+  @Get('activity')
+  @UseGuards(AuthGuard)
+  async getActivity(
+    @AuthenticatedUser() user: UserDto
+  ) {
+    const email = user.email;
+    const clientId = user.azp;
+    if (!email || !clientId) {
+      throw new BadRequestException();
+    }
+    if (clientId !== "pictime" && clientId !== "pictalk") {
+      throw new BadRequestException();
+    }
+    const odooUser = await this.odooServices.getUserFromOdoo(email);
+    if (clientId == "pictime") {
+      return {
+        lastActivity: odooUser.x_studio_dernire_connexion_agenda,
+        connectionNumber: odooUser.x_studio_nombre_de_connexions_agenda,
+      }
+    } else if (clientId == "pictalk") {
+      return {
+        lastActivity: odooUser.x_studio_dernire_connexion_pictalk,
+        connectionNumber: odooUser.x_studio_nombre_de_connexions_pictalk,
+      }
+    }
+    throw new BadRequestException();
+  }
 
   @Post('webhook')
   async handleWebhook(@Body() body: any) {
@@ -21,19 +51,20 @@ export class MarketingController {
     try {
       if (action !== "NEWSLETTER") { // If newsletter is true, user will not exist in keycloak
         try {
-        const token = await this.keycloakService.getKeycloakToken();
-        const response = await axios.get(
-          `${process.env.KEYCLOAK_BASE_URL}/admin/realms/${process.env.KEYCLOAK_REALM}/users/${userId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
+          const token = await this.keycloakService.getKeycloakToken();
+          console.log(`${process.env.KEYCLOAK_BASE_URL}/admin/realms/${process.env.KEYCLOAK_REALM}/users/${userId}`)
+          const response = await axios.get(
+            `${process.env.KEYCLOAK_BASE_URL}/admin/realms/${process.env.KEYCLOAK_REALM}/users/${userId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
             },
-          },
-        );
-        user = response.data;
-        if (!user.email) {
-          return;
-        }
+          );
+          user = response.data;
+          if (!user.email) {
+            return;
+          }
         } catch (error) {
           this.logger.error('Error fetching user from Keycloak', error.message);
           throw error;

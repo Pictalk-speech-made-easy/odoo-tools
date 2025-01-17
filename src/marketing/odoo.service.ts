@@ -98,6 +98,64 @@ export class KeycloakOdooService {
   }
 
   /**
+   * Retrieve a user from Odoo based on their email
+   */
+  async getUserFromOdoo(email: string): Promise<any> {
+    try {
+      this.logger.log(`Retrieving user from Odoo: ${email}`);
+
+      // Authenticate with Odoo
+      const uid = await this.authenticate();
+
+      // Search for the contact by email
+      const searchResponse = await axios.post(`${this.odooUrl}/jsonrpc`, {
+        jsonrpc: '2.0',
+        method: 'call',
+        params: {
+          service: 'object',
+          method: 'execute_kw',
+          args: [
+            this.odooDb,
+            uid,
+            this.odooPassword,
+            'res.partner',
+            'search_read',
+            [[['email', '=', email]]],
+            {
+              fields: [
+                'id',
+                'name',
+                'email',
+                'phone',
+                'x_studio_nombre_de_connexions_agenda',
+                'x_studio_dernire_connexion_agenda',
+                'x_studio_frquence_de_connexion_agenda',
+                'x_studio_dernire_connexion_pictalk',
+                'x_studio_nombre_de_connexions_pictalk',
+                'x_studio_frquence_de_connexion_pictalk',
+              ],
+            },
+          ],
+        },
+        id: new Date().getTime(),
+      });
+
+      const user = searchResponse.data.result;
+
+      if (!user || user.length === 0) {
+        this.logger.log(`No user found in Odoo with email: ${email}`);
+        return null;
+      }
+
+      this.logger.log(`Retrieved user from Odoo: ${JSON.stringify(user[0])}`);
+      return user[0];
+    } catch (error) {
+      this.logger.error('Error retrieving user from Odoo', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Synchronize a user to Odoo (create or update contact)
    */
   async syncUserToOdoo(
