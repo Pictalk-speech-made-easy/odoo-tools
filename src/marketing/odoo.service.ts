@@ -127,6 +127,7 @@ export class KeycloakOdooService {
                 'name',
                 'email',
                 'phone',
+                'create_date',
                 'x_studio_nombre_de_connexions_agenda',
                 'x_studio_dernire_connexion_agenda',
                 'x_studio_frquence_de_connexion_agenda',

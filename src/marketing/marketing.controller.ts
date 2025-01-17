@@ -31,11 +31,13 @@ export class MarketingController {
       return {
         lastActivity: odooUser.x_studio_dernire_connexion_agenda,
         connectionNumber: odooUser.x_studio_nombre_de_connexions_agenda,
+        createdDate: odooUser.create_date,
       }
     } else if (clientId == "pictalk") {
       return {
         lastActivity: odooUser.x_studio_dernire_connexion_pictalk,
         connectionNumber: odooUser.x_studio_nombre_de_connexions_pictalk,
+        createdDate: odooUser.create_date,
       }
     }
     throw new BadRequestException();
