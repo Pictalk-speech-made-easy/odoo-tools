@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { ThrottlerGuard, Throttle } from "@nestjs/throttler"; // <-- Import
 import { AuthenticatedUser, AuthGuard } from "nest-keycloak-connect";
 import { UserDto } from "src/subscription/user.dto";
-import { event_system_prompt, sequence_system_prompt } from "./sequence.prompt";
+import { event_system_prompt, sequence_response_format, sequence_system_prompt } from "./sequence.prompt";
 import { SequencePromptDto } from "./sequence.prompt.dto";
 import { SharedCacheService } from "src/subscription/shared.cache.service";
 import { SubscriptionDto } from "src/subscription/subscription.dto";
@@ -30,10 +30,9 @@ export class AiController {
   async generateSequence(
     @Body() body: SequencePromptDto,
     @AuthenticatedUser() user: UserDto
-  ) {
+  ): Promise<SequenceResponseDto> {
     const subscription: SubscriptionDto = await this.sharedCacheService.get(user.email) as SubscriptionDto;
-    console.log(subscription);
-    if (!subscription || subscription.tier === 'free') throw new UnauthorizedException('You need to be a subscriber to use this feature');
+    //if (!subscription || subscription.tier === 'free') throw new UnauthorizedException('You need to be a subscriber to use this feature');
     const response = await this.openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [sequence_system_prompt, 
@@ -42,10 +41,9 @@ export class AiController {
                 content: `Instruction: ${body.instruction}\nLevel: ${body.level}\nLanguage: ${body.language}`
             }
         ],
-        temperature: 0.7,
-        
+        response_format: sequence_response_format,
+        temperature: 0.6,
     });
-    // Check if response contains error
     if (response.choices[0].message.content.includes('error')) {
         throw new ForbiddenException(JSON.parse(response.choices[0].message.content)); 
     }
